@@ -1,0 +1,23 @@
+# def calculate_entropie(y):
+#     # calculate the counts of each unique value in the label
+#     values, counts = np.unique(y, return_counts=True)
+#     # calculate the entropy
+#     entropie = 0
+#     for count in counts:
+#         entropie += (-count / np.sum(counts)) * np.log2(count / np.sum(counts))
+#     return entropie
+    
+
+# #information gain function 
+# def information_gain(X, y, attribute):
+#     # calculate the entropy of the whole dataset
+#     entropy = calculate_entropie(y)
+#     # calculate the values and the corresponding counts for the split attribute
+#     values, counts = np.unique(X[:, attribute], return_counts=True)
+#     # calculate the weighted entropy
+#     weighted_entropie = 0
+#     for value, count in zip(values, counts):
+#         weighted_entropie += (count / np.sum(counts)) * calculate_entropie(y[X[:, attribute] == value])
+#     # calculate the information gain
+#     information_gain = entropy - weighted_entropie
+#     return information_gain
