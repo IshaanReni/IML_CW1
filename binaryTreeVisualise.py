@@ -8,7 +8,7 @@ import matplotlib.patches as patches
 
 width_dist = 10
 depth_dist = 10
-levels = 2
+levels = 4
 label_Width = 4
 label_Height = 1
 nodes = []
@@ -29,27 +29,32 @@ def binaryTree_gen(levels, x, y, width):
 
     return segments
 
-segs = binaryTree_gen(levels, 0, 0, width_dist)
 
-# colors = [mcolors.to_rgba(c)
-#           for c in plt.rcParams['axes.prop_cycle'].by_key()['color']]
-line_segments = LineCollection(segs, linewidths=1, colors='red', linestyle='solid')
-tree_nodes = PatchCollection(nodes, linewidth=1, edgecolor='green', facecolor='none')
+def plot_tree (tree_list):
+
+    segs = binaryTree_gen(levels, 0, 0, width_dist)
+
+    # colors = [mcolors.to_rgba(c)
+    #           for c in plt.rcParams['axes.prop_cycle'].by_key()['color']]
+    line_segments = LineCollection(segs, linewidths=1, colors='red', linestyle='solid')
+    tree_nodes = PatchCollection(nodes, linewidth=1, edgecolor='green', facecolor='none')
 
 
-fig, ax = plt.subplots()
-ax.set_ylim(-(levels * depth_dist + 1), 1)
-ax.set_xlim(-1.5*width_dist, 1.5*width_dist)
-ax.add_collection(line_segments)
-ax.add_collection(tree_nodes)
+    fig, ax = plt.subplots()
+    ax.set_ylim(-(levels * depth_dist + 1), 1)
+    ax.set_xlim(-1.5*width_dist, 1.5*width_dist)
+    ax.add_collection(line_segments)
+    ax.add_collection(tree_nodes)
 
-for r in nodes:
-    ax.add_artist(r)
-    rx, ry = r.get_xy()
-    cx = rx + r.get_width()/2.0
-    cy = ry + r.get_height()/2.0
-    label = ( rx, ry) # this is very ugly and I hate it(Alex), why is python this way
-    ax.annotate(label, (cx, cy), color='w', weight='bold', 
-                fontsize=6, ha='center', va='center')
+    flat_tree_list = [node for level in tree_list for node in level]
 
-plt.show()
+    for i, r in enumerate(nodes):
+        ax.add_artist(r)
+        rx, ry = r.get_xy()
+        cx = rx + r.get_width()/2.0
+        cy = ry + r.get_height()/2.0
+        label = flat_tree_list[i]
+        ax.annotate(label, (cx, cy), color='w', weight='bold', 
+                    fontsize=6, ha='center', va='center')
+
+    plt.show()

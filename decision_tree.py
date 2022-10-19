@@ -1,5 +1,5 @@
 import numpy as np  #allowed
-
+from binaryTreeVisualise import plot_tree #own file
 
 class Node:
 #Tree node
@@ -31,6 +31,7 @@ class DecisionTree:
     #constructor for a tree
     def __init__(self):
         self.root = None    #beginning of tree
+        final_depth = None  #used in case final tree depth is < max depth
     
     #save model to text file after training
     def save_tree (self):
@@ -39,32 +40,28 @@ class DecisionTree:
     #rebuild tree from saved model for predicting
     def load_tree (self, filepath):
         pass
+
+    #recursively add nodes to list of lists
+    @classmethod
+    def tree_to_list(cls, node, tree_list, max_level, level, num):
+        if node is None or level > max_level:   #cease recursion at end of tree or sufficient depth
+            return tree_list
+        else:
+            tree_list[level-1][num] = f"Emitter {node.attribute} < {node.value}" if type(node) is Decision else f"Room {node.room}" #add label
+            tree_list = DecisionTree.tree_to_list(node.true_child, tree_list, max_level, level+1, 2*num) #level-order node number = 2*num for left branches
+            tree_list = DecisionTree.tree_to_list(node.false_child, tree_list, max_level, level+1, 2*num + 1) #level-order node number = 2*num + 1 for right branches
+        return tree_list
     
-    #This one doesnt actually work with our trees............
-    # def print_tree(self, tree, lvl=1): ###### from online, replace with own implementation
-    #     '''
-    #     Print embedded lists as an indented text tree
-
-    #     Recursive to depth 3
-
-    #     tree: list[val, list[]...]
-    #     '''
-    #     indent = 2
-    #     bullet = ''
-
-    #     if lvl == 1: bullet = '*'
-    #     elif lvl == 2: bullet = '+'
-    #     elif lvl == 3: bullet = '-'
-    #     else: raise ValueError('Unknown lvl: {}'.format(lvl))
-
-    #     for i in tree:
-    #         if type(i) is list:
-    #             DecisionTree.print_tree(i, lvl+1)
-    #         else:
-    #             print('{}{} {}'.format(' '*(indent*(lvl-1)), bullet, i))
+    def print_tree (self, depth=99999):
+        list_depth = min(depth, self.final_depth) #print depth can be overwritten by arg
+        tree_list = [[None for node in range(2**level)] for level in range(list_depth)] #blank nested list with perfect tree size
+        tree_list = DecisionTree.tree_to_list(self.root, tree_list, list_depth, level=1, num=0)  #traverse tree and add to list
+        print(tree_list)####
+        plot_tree(tree_list)    #separate plot script
 
 
 class Classifier:
+#contains functions and class variables outside the DecisionTree scope
 
     max_depth = None    #early stopping criteria for trees
     dataset = None  #full data array from file
@@ -79,6 +76,7 @@ class Classifier:
             entropy += (-i / np.sum(count)) * np.log2(i / np.sum(count))
 
         return entropy
+    
 
     @classmethod
     def entropy (dataset):  ####### check to see if this works and whether the data is divided like this
@@ -92,9 +90,9 @@ class Classifier:
             for j in count:
                 prob = j / size 
                 entropy += -1 * prob * np.log2(prob)
-    
-    return entropy
-    
+
+        return entropy
+
     @classmethod
     def information_gain(cls, x, y):
         pass
@@ -113,7 +111,7 @@ class Classifier:
 
         room_labels, label_counts = np.unique(data[:, 7], return_counts=True) #get room labels and frequencies present in current subset
         if len(room_labels) == 1 or depth == Classifier.max_depth:    #if all samples from the same room or max_depth reached (early stopping)
-            room_plurality = room_labels[label_counts==max(label_counts)]   #predicted room is mode of room labels
+            room_plurality = room_labels[label_counts==max(label_counts)][0]   #predicted room is mode of room labels
             leaf_node = Leaf(room_plurality)    #create leaf node with this room prediction
             return leaf_node, depth     #return leaf node and current depth to parent node
         else:
@@ -130,9 +128,9 @@ class Classifier:
     def fit (cls, dataset_filepath, max_depth):
         Classifier.max_depth = max_depth    #tree will stop constructing when this depth is reached
         Classifier.dataset = np.loadtxt(dataset_filepath).astype(np.int64)    #load data from text file into integer numpy array
-        decision_tree = DecisionTree()     #instantiate blank tree
-        decision_tree.root = Classifier.decision_tree_learning(Classifier.dataset, 1)  #start recursive training process (beginning with depth 1)
-        return decision_tree
+        tree = DecisionTree()     #instantiate blank tree
+        tree.root, tree.final_depth = Classifier.decision_tree_learning(Classifier.dataset, depth=1)  #start recursive training process
+        return tree
 
     @classmethod
     def predict (cls, load=False, tree_filepath=None): ###### Next one to do
@@ -142,4 +140,4 @@ class Classifier:
 #default main when file ran individually
 if __name__ == "__main__":
     tree = Classifier.fit(r'intro2ML-coursework1\wifi_db\noisy_dataset.txt', 10)
-    tree.print_tree(tree.root, 3)
+    tree.print_tree(depth=5)
