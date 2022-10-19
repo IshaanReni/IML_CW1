@@ -79,6 +79,21 @@ class Classifier:
             entropy += (-i / np.sum(count)) * np.log2(i / np.sum(count))
 
         return entropy
+
+    @classmethod
+    def entropy (dataset):  ####### check to see if this works and whether the data is divided like this
+    # each col represents a different attribute
+        col = np.size(dataset,1)
+        entropy = 0
+        for i in range(col-1):  #subtract 1 to ignore the last column which is the room label
+            column = dataset[:,i]
+            unique, count = np.unique(column, return_counts=True)   #check which is unique and count the number of unique val
+            size = np.sum(count)  #total number of outcomes
+            for j in count:
+                prob = j / size 
+                entropy += -1 * prob * np.log2(prob)
+    
+    return entropy
     
     @classmethod
     def information_gain(cls, x, y):
