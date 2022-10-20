@@ -1,11 +1,12 @@
 import numpy as np  #allowed
 from binaryTreeVisualise import plot_tree #own file
+import pickle #from Python standard library (allowed)
 
 class Node:
 #Tree node
 
     def __init__(self):
-        self.true_child = self.false_child = None   #children initially pointing to None.
+        self.true_child = self.false_child = None   #left and right children initially pointing to None.
 
 
 class Decision (Node):
@@ -52,11 +53,22 @@ class DecisionTree:
             tree_list = DecisionTree.tree_to_list(node.false_child, tree_list, max_level, level+1, 2*num + 1) #level-order node number = 2*num + 1 for right branches
         return tree_list
     
-    def print_tree (self, depth=99999):
+    #traverses tree for prediction
+    def search_tree(self, node, test_vals):
+        if type(node) is Leaf:
+            return node.room    #return final room prediction from leaf of tree
+        elif test_vals[node.attribute] < node.value:    #check if (test) wifi strength on emitter (from tree) is less than node's decision value 
+            return self.search_tree(node.true_child, test_vals) #go down left recursively
+        else:
+            return self.search_tree(node.true_child, test_vals) #go down right recursively
+    
+    def print_tree (self, depth=999999):
         list_depth = min(depth, self.final_depth) #print depth can be overwritten by arg
         tree_list = [[None for node in range(2**level)] for level in range(list_depth)] #blank nested list with perfect tree size
         tree_list = DecisionTree.tree_to_list(self.root, tree_list, list_depth, level=1, num=0)  #traverse tree and add to list
-        print(tree_list)####
+        print("Tree list:\n")
+        for row in tree_list:
+            print(row)
         plot_tree(tree_list)    #separate plot script
 
 
@@ -66,48 +78,110 @@ class Classifier:
     max_depth = None    #early stopping criteria for trees
     dataset = None  #full data array from file
 
+    # @classmethod
+    # def entropy(cls, x):
+    #     #x is a np.ndarray of size (N, K)
+    #     values, count = np.unique(x, return_counts=True)
+    #     entropy = 0
+
+    #     for i in count:
+    #         entropy += (-i / np.sum(count)) * np.log2(i / np.sum(count))
+
+    #     return entropy
+
     @classmethod
-    def entropy(cls, x): ###### first first thing to be fixed!!!
-        #x is a np.ndarray of size (N, K)
-        values, count = np.unique(x, return_counts=True)
+    def entropy_calc(cls, split):
         entropy = 0
-
-        for i in count:
-            entropy += (-i / np.sum(count)) * np.log2(i / np.sum(count))
-
+        unique, counts = np.unique(split[:,1], return_counts=True)
+        sums = np.sum(counts)
+        for count in counts:
+            prob = count / sums
+            entropy += -1 * prob * np.log2(prob)
         return entropy
     
-
     @classmethod
-    def entropy (dataset):  ####### check to see if this works and whether the data is divided like this
-    # each col represents a different attribute
-        col = np.size(dataset,1)
-        entropy = 0
-        for i in range(col-1):  #subtract 1 to ignore the last column which is the room label
-            column = dataset[:,i]
-            unique, count = np.unique(column, return_counts=True)   #check which is unique and count the number of unique val
-            size = np.sum(count)  #total number of outcomes
-            for j in count:
-                prob = j / size 
-                entropy += -1 * prob * np.log2(prob)
+    def entropy_for_all_columns(cls, dataset):
+        lowest_entropy = 999999
+        lowest_split = 0
 
-        return entropy
+        numcol = np.size(dataset,1)    #number of columns 
+        for i in range(numcol-1):
+            print("i", i)
+            min_entropy = 999999
+            min_split = 0
+            entropy = 0
+            data = dataset[:,[i,-1]]    # extract the router column and label
+            sorted_data = data[data[:, 0].argsort()]    # sort according to the router column values
+            # print("sorted", sorted_data.shape)
+            # print("unsorted", data)
+            # print("sorted", sorted_data)
+            
 
-    @classmethod
-    def information_gain(cls, x, y):
-        pass
+            for a in range(len(sorted_data)-1):
+                fsplit = sorted_data[:a+1,:]    # top split
+                ssplit = sorted_data[a+1:,:]    # bottom split
+                # print("a", a)
+                sum_entropy = Classifier.entropy_calc(fsplit) + Classifier.entropy_calc(ssplit) # sum entropies which is used in information gain
+                
+                # print("entropy", sum_entropy)
+                if sum_entropy < min_entropy:   # Checks if the entropy that was just calculated is lower than the lowest so far
+                    min_entropy = sum_entropy   # Replaces the value of the return variable with the entropy that was just calculated
+                    min_split = a               # Shows which split[index] gave the lowest entropy sum
+            # print(str(min_entropy) + " smth " + str(min_split))
+
+        
+            if min_entropy < lowest_entropy:   # Checks if the entropy that was just calculated is lower than the lowest so far
+                lowest_entropy = min_entropy   # Replaces the value of the return variable with the entropy that was just calculated
+                lowest_split = min_split               # Shows which split[index] gave the lowest entropy sum
+                min_router = i               # Stores the index of the router with the best split so far
+
+            print(str(min_router) + " smth " + str(lowest_split))
+        return min_router, lowest_split   # Returns the min router(column index) and the split(row index) for this.
+                
+                
+                
+                
+
+
+
+    # @classmethod
+    # def entropy_full_column(dataset):
+    #     # each col represents a different attribute
+    #     col = np.size(dataset,1) ####### ==6
+    #     entropies = []
+    #     for i in range(col-1):  #subtract 1 to ignore the last column which is the room label
+    #         column = dataset[:,i]
+    #         entropy = 0
+    #         unique, count = np.unique(column, return_counts=True)   #check which is unique and count the number of each unique val
+    #         size = np.sum(count)  #total number of outcomes
+    #         for j in count:
+    #             prob = j / size 
+    #             entropy += -1 * prob * np.log2(prob)
+    #         entropies.append(entropy)   # gives a list of entropies for each column
+        
+        
+    #     return entropies
+
+    # def entropy_split_column(column_data):
+    #     labels = 
+
     
     @classmethod
-    def find_split(cls, data): #####redo later
-        attribute = np.random.randint(data.shape[1]-1) #random column ##########
-        value = np.random.choice(data[:,attribute]) #random number from column #########
+    def find_split(cls, data):
+        # attribute = np.random.randint(data.shape[1]-1) #random column ##########
+        # value = np.random.choice(data[:,attribute]) #random number from column #########
+        
+        entropies = Classifier.entropy_for_all_columns(data) #stores the split decision attribute (the specific router in question)
+        np_entropies = np.array(entropies)
+        attribute = np.argmin(np_entropies)     # gives the index (column number) of the min entropy
+        value = np.nanmin(np_entropies)     # gives the min value in the np array
         return attribute, value
 
     #recursive function which constructs tree and returns subtree root node
     @classmethod
     def decision_tree_learning (cls, data, depth):
-        if len(data) == 0: ###########temp for random split
-            return Leaf(0), depth ###########temp for random split
+        # if len(data) == 0: ######temp for random split
+        #     return Leaf(0), depth ######temp for random split
 
         room_labels, label_counts = np.unique(data[:, 7], return_counts=True) #get room labels and frequencies present in current subset
         if len(room_labels) == 1 or depth == Classifier.max_depth:    #if all samples from the same room or max_depth reached (early stopping)
@@ -132,12 +206,18 @@ class Classifier:
         tree.root, tree.final_depth = Classifier.decision_tree_learning(Classifier.dataset, depth=1)  #start recursive training process
         return tree
 
+    #querying algorithm to traverse through the decision tree to allocate room numbers to test data entered
     @classmethod
-    def predict (cls, load=False, tree_filepath=None): ###### Next one to do
-        pass
-
+    def predict (cls, tree, test_set):
+        predictions = []
+        test_set = np.array([test_set]) if test_set.ndim == 1 else test_set #ensure that test_set has n tests in it (2D array)
+        for test in test_set:   #complete prediction for each test
+            predictions.append(tree.search_tree(tree.root, test))
+        predictions = np.array(predictions)
+        return predictions  #1D array of class labels (rooms) for each test
 
 #default main when file ran individually
 if __name__ == "__main__":
     tree = Classifier.fit(r'intro2ML-coursework1\wifi_db\noisy_dataset.txt', 10)
-    tree.print_tree(depth=5)
+    print(Classifier.predict(tree, [-30, -30, -30, -30, -30, -30, -30]))
+    tree.print_tree(depth=6)
