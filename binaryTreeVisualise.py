@@ -5,15 +5,9 @@ import matplotlib.patches as patches
 # Reference: https://stackoverflow.com/questions/59028711/plotting-a-binary-tree-in-matplotlib
 # https://stackoverflow.com/questions/14531346/how-to-add-a-text-into-a-rectangle
 
-t_levels = 5                                    # all sizes relative to the nr of levels
-width_dist = t_levels**2                        # distance between parent node and child node (x axis)
-depth_dist = 20                                 # height between levels
-label_Width = t_levels*2.2                      # width of the rectangle label for each node
-label_Height = t_levels*0.45                    # height of the rectangle label for each node
-font_size = t_levels*1.2                        #font size on the label
 nodes = []
 
-def binaryTree_gen(levels, x, y, width):        # assume complete tree given
+def binaryTree_gen(levels, x, y, width, t_levels, depth_dist, label_Width, label_Height):        # assume complete tree given
     # spaceBetween = (t_levels-levels+1)*width
     segments = []
     xl = x - width/2                            # calculating the coords for the left and right child node
@@ -33,27 +27,31 @@ def binaryTree_gen(levels, x, y, width):        # assume complete tree given
     nodes.append(patches.Rectangle((xl_rectangle, yl_rectangle), label_Width, label_Height, label="left"))
     nodes.append(patches.Rectangle((xr - label_Width/2, yr - label_Height/2), label_Width, label_Height, label="right"))
     if levels > 1:                              # recursive call if were not on the final level
-        segments += binaryTree_gen(levels - 1, xl, yl, width/2)
-        segments += binaryTree_gen(levels - 1, xr, yr, width/2)
+        segments += binaryTree_gen(levels - 1, xl, yl, width/2, t_levels, depth_dist, label_Width, label_Height)
+        segments += binaryTree_gen(levels - 1, xr, yr, width/2, t_levels, depth_dist, label_Width, label_Height)
 
     return segments
 
 
-def plot_tree (tree_list):
+def plot_tree (inorder_list, t_levels):
+    width_dist = t_levels**2                        # distance between parent node and child node (x axis)
+    depth_dist = 20                                 # height between levels
+    label_Width = t_levels*2.2                      # width of the rectangle label for each node
+    label_Height = t_levels*0.45                    # height of the rectangle label for each node
+    font_size = t_levels*1.2                        #font size on the label
 
-    segs = binaryTree_gen(t_levels, 0, 0, width_dist) # initial call of the gen tree function
+    segs = binaryTree_gen(t_levels, 0, 0, width_dist, t_levels, depth_dist, label_Width, label_Height) # initial call of the gen tree function
 
     fig, ax = plt.subplots()                        #set axis contraints
     ax.set_ylim(-(t_levels * depth_dist + 5), 5)
     ax.set_xlim(-2*width_dist, 2*width_dist)
 
-    flat_tree_list = [node for level in tree_list for node in level]
-
     for i, r in enumerate(nodes):
         rx, ry = r.get_xy()
         cx = rx + r.get_width()/2.0
         cy = ry + r.get_height()/2.0
-        label = flat_tree_list[i]
+        print("Label:", inorder_list[i], "with index: ", i)
+        label = inorder_list[i]
         # if label == None:
         #     del segs[i]
         #     del segs[i+1]

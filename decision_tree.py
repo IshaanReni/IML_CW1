@@ -2,6 +2,7 @@ import numpy as np  #allowed
 from binaryTreeVisualise import plot_tree #own file
 import pickle #from Python standard library (allowed)
 
+
 class Node:
 #Tree node
 
@@ -44,13 +45,14 @@ class DecisionTree:
 
     #recursively add nodes to list of lists
     @classmethod
-    def tree_to_list(cls, node, tree_list, max_level, level, num):
+    def level_order_list(cls, node, tree_list, max_level, level, num):
         if node is None or level > max_level:   #cease recursion at end of tree or sufficient depth
             return tree_list
         else:
-            tree_list[level-1][num] = f"Emitter {node.attribute} < {node.value}" if type(node) is Decision else f"Room {node.room}" #add label
-            tree_list = DecisionTree.tree_to_list(node.true_child, tree_list, max_level, level+1, 2*num) #level-order node number = 2*num for left branches
-            tree_list = DecisionTree.tree_to_list(node.false_child, tree_list, max_level, level+1, 2*num + 1) #level-order node number = 2*num + 1 for right branches
+            label_string = f"Emitter {node.attribute} < {node.value}" if type(node) is Decision else f"Room {node.room}"
+            tree_list[level-1][num] = label_string      # list of decision labels/rooms for human readability
+            tree_list = DecisionTree.level_order_list(node.true_child, tree_list, max_level, level+1, 2*num) #level-order node number = 2*num for left branches
+            tree_list = DecisionTree.level_order_list(node.false_child, tree_list, max_level, level+1, 2*num + 1) #level-order node number = 2*num + 1 for right branches
         return tree_list
     
     #traverses tree for prediction
@@ -62,14 +64,18 @@ class DecisionTree:
         else:
             return self.search_tree(node.true_child, test_vals) #go down right recursively
     
+    #creates a nested level-order tree list for human-readability, and an inorder list for plotting
     def print_tree (self, depth=999999):
         list_depth = min(depth, self.final_depth) #print depth can be overwritten by arg
         tree_list = [[None for node in range(2**level)] for level in range(list_depth)] #blank nested list with perfect tree size
-        tree_list = DecisionTree.tree_to_list(self.root, tree_list, list_depth, level=1, num=0)  #traverse tree and add to list
+        tree_list = DecisionTree.level_order_list(self.root, tree_list, list_depth, level=1, num=0)  #traverse tree and add to list
+        inorder_list = DecisionTree.inorder_list(self.root, tree_list)  #convert to inorder_list by traversing tree list
         print("Tree list:\n")
-        for row in tree_list:
+        for row in tree_list:   #human readable, level-order
             print(row)
-        plot_tree(tree_list)    #separate plot script
+        print("Inorder list\n")
+        print(inorder_list)     #to send for plotting
+        plot_tree(inorder_list, list_depth)    #separate plot script
 
 
 class Classifier:
@@ -78,107 +84,51 @@ class Classifier:
     max_depth = None    #early stopping criteria for trees
     dataset = None  #full data array from file
 
-    # @classmethod
-    # def entropy(cls, x):
-    #     #x is a np.ndarray of size (N, K)
-    #     values, count = np.unique(x, return_counts=True)
-    #     entropy = 0
-
-    #     for i in count:
-    #         entropy += (-i / np.sum(count)) * np.log2(i / np.sum(count))
-
-    #     return entropy
-
     @classmethod 
     def entropy_calc(cls, split_array):       # calculation of the entropy for a specific column split (top or bottom)
         unique, counts = np.unique(split_array[:,1], return_counts=True) #frequency of each room in array
         sum = np.sum(counts)    #total number of rooms (equals length of split_array along axis 0)
         proportions = counts / sum    #proportions of each room in the set
-        entropies = -1 * proportions * np.log2(proportions) 
-        entropy = np.sum(entropies)
+        entropies = -1 * proportions * np.log2(proportions) #entropies for each room in the set
+        entropy = np.sum(entropies) #total entropy for this split
         return entropy
     
     @classmethod
     def find_split(cls, dataset):   # entropy_for_all_columns
-        lowest_entropy = 999999
+        min_entropy = 999999
+        min_router = -1
+        min_split = -1
 
-        numcol = np.size(dataset,1)    #number of columns 
-        for i in range(numcol-1):
-            # print("i", i) #######
-            min_entropy = 999999
-            min_split = 0
-            data = dataset[:,[i,-1]]    # extract the router column and label
-            sorted_data = data[data[:, 0].argsort()]    # sort according to the router column values
-            # print("sorted", sorted_data.shape)#####
-            # print("unsorted", data)######
-            # print("sorted", sorted_data)#####
-            
+        numcols = np.size(dataset,1)    #number of columns 
+        for emitter in range(numcols-1):      #for each column
+            min_col_entropy = 999999    #will be replaced with lowest entropy
+            data = dataset[:,[emitter,-1]]    # extract the router column and label
+            sorted_data = data[data[:, 0].argsort()]    # sort according to the router column values (makes splits more efficient)         
 
-            for a in range(len(sorted_data)-1):
-                fsplit = sorted_data[:a+1,:]    # first/top split
-                ssplit = sorted_data[a+1:,:]    # second/bottom split
-                # print("a", a)
-                sum_entropy = Classifier.entropy_calc(fsplit) + Classifier.entropy_calc(ssplit) # sum entropies which is used in information gain
+            for split_point_index in range(len(sorted_data)-1):     #for each emitter value
+                less_split_array = sorted_data[:split_point_index+1,:]  # top half of the split column in array form
+                greater_split_array = sorted_data[split_point_index+1:,:] # bottom half of the split column in array form
+                sum_entropy = Classifier.entropy_calc(less_split_array) + Classifier.entropy_calc(greater_split_array) # sum entropies which is used in information gain
                 
-                # print("entropy", sum_entropy)
-                if sum_entropy < min_entropy:   # Checks if the entropy that was just calculated is lower than the lowest so far
-                    min_entropy = sum_entropy   # Replaces the value of the return variable with the entropy that was just calculated
-                    min_split = fsplit[a]       # Shows which split value gave the lowest entropy sum
-            # print(str(min_entropy) + " smth " + str(min_split))
+                if sum_entropy < min_col_entropy:   # Checks if the entropy that was just calculated is lower than the lowest for this emitter so far
+                    min_col_entropy = sum_entropy       # Minimum entropy for this emitter
+                    min_col_split = less_split_array[-1][0]   # Which split value gave the lowest entropy sum for this emitter
+            #print("min entropy: "+ str(min_entropy) + "; min_split (row value where to split): " + str(min_split)) ######
 
+            if min_col_entropy < min_entropy:   # Checks if the entropy that was just calculated is lower than the lowest so far
+                min_entropy = min_col_entropy   # Replaces the value of the return variable with the entropy that was just calculated
+                min_split = min_col_split       # Which split value gave the lowest entropy sum overall
+                min_router = emitter            # Stores the index of the router with the best split so far
+
+            #print("min router: "+ str(min_router) + "; min_split (row value where to split): " +str(min_split)) ######
+        assert(min_router!=-1 and min_split!=-1), "Decision tree training error" #error handling
+        return min_router, min_split   # Returns the min router(column index) and the split(row index) for this.
         
-            if min_entropy < lowest_entropy:   # Checks if the entropy that was just calculated is lower than the lowest so far
-                lowest_entropy = min_entropy   # Replaces the value of the return variable with the entropy that was just calculated
-                lowest_split = min_split[0]       # Shows which split value gave the lowest entropy sum
-                min_router = i                 # Stores the index of the router with the best split so far
-
-            # print(str(min_router) + " smth " + str(lowest_split))
-        return min_router, lowest_split   # Returns the min router(column index) and the split(row index) for this.
-                
-                
-                
-                
-
-
-
-    # @classmethod
-    # def entropy_full_column(dataset):
-    #     # each col represents a different attribute
-    #     col = np.size(dataset,1) ####### ==6
-    #     entropies = []
-    #     for i in range(col-1):  #subtract 1 to ignore the last column which is the room label
-    #         column = dataset[:,i]
-    #         entropy = 0
-    #         unique, count = np.unique(column, return_counts=True)   #check which is unique and count the number of each unique val
-    #         size = np.sum(count)  #total number of outcomes
-    #         for j in count:
-    #             prob = j / size 
-    #             entropy += -1 * prob * np.log2(prob)
-    #         entropies.append(entropy)   # gives a list of entropies for each column
-        
-        
-    #     return entropies
-
-    # def entropy_split_column(column_data):
-    #     labels = 
-
-    
-    # @classmethod
-    # def find_split(cls, data):
-    #     # attribute = np.random.randint(data.shape[1]-1) #random column ##########
-    #     # value = np.random.choice(data[:,attribute]) #random number from column #########
-        
-    #     entropies = Classifier.find_split(data) #stores the split decision attribute (the specific router in question)
-    #     np_entropies = np.array(entropies)
-    #     attribute = np.argmin(np_entropies)     # gives the index (column number) of the min entropy
-    #     value = np.nanmin(np_entropies)     # gives the min value in the np array
-    #     return attribute, value
-
     #recursive function which constructs tree and returns subtree root node
     @classmethod
     def decision_tree_learning (cls, data, depth):
-        if len(data) == 0: ######temp for random split
-            return Leaf(0), depth ######temp for random split
+        if len(data) == 0: ###### temp for random split
+            return Leaf(0), depth ###### temp for random split
 
         room_labels, label_counts = np.unique(data[:, 7], return_counts=True) #get room labels and frequencies present in current subset
         if len(room_labels) == 1 or depth == Classifier.max_depth:    #if all samples from the same room or max_depth reached (early stopping)
