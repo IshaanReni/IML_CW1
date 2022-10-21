@@ -1,5 +1,6 @@
 import numpy as np  #allowed
 from binaryTreeVisualise import plot_tree #own file
+from preorderTreeVisualise import plot_preorder_tree #own file
 import pickle #from Python standard library (allowed)
 
 
@@ -69,13 +70,15 @@ class DecisionTree:
         list_depth = min(depth, self.final_depth) #print depth can be overwritten by arg
         tree_list = [[None for node in range(2**level)] for level in range(list_depth)] #blank nested list with perfect tree size
         tree_list = DecisionTree.level_order_list(self.root, tree_list, list_depth, level=1, num=0)  #traverse tree and add to list
-        inorder_list = DecisionTree.inorder_list(self.root, tree_list)  #convert to inorder_list by traversing tree list
+        # inorder_list = DecisionTree.inorder_list(self.root, tree_list)  #convert to inorder_list by traversing tree list
         print("Tree list:\n")
-        for row in tree_list:   #human readable, level-order
-            print(row)
-        print("Inorder list\n")
-        print(inorder_list)     #to send for plotting
-        plot_tree(inorder_list, list_depth)    #separate plot script
+        # for row in tree_list:   #human readable, level-order
+        #     print(row)
+        # print("Inorder list\n")
+        # print(inorder_list)     #to send for plotting
+        # plot_tree(inorder_list, list_depth)          #separate plot script
+        plot_preorder_tree([1,2,3,4,5,6,None], 3) #separate preorder plot script
+        # just testing data 
 
 
 class Classifier:
