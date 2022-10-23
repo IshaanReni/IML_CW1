@@ -164,9 +164,9 @@ class Classifier:
 
     #callable by other functions to commence training
     @classmethod
-    def fit (cls, dataset_filepath, max_depth):
+    def fit (cls, dataset, max_depth):
         Classifier.max_depth = max_depth    #tree will stop constructing when this depth is reached
-        Classifier.dataset = np.loadtxt(dataset_filepath).astype(np.int64)    #load data from text file into integer numpy array
+        Classifier.dataset = dataset
         tree = DecisionTree()     #instantiate blank tree
         tree.root, tree.final_depth = Classifier.decision_tree_learning(Classifier.dataset, depth=1)  #start recursive training process
         return tree
@@ -183,7 +183,8 @@ class Classifier:
 
 #default main when file ran individually
 if __name__ == "__main__":
-    tree = Classifier.fit(r'intro2ML-coursework1\wifi_db\noisy_dataset.txt', max_depth=10)
+    dataset = np.loadtxt(r'intro2ML-coursework1\wifi_db\noisy_dataset.txt').astype(np.int64)    #load data from text file into integer numpy array
+    tree = Classifier.fit(dataset, max_depth=10)
     print("Prediction: ", Classifier.predict(tree, np.array([-64, -56, -61, -66, -71, -82, -81])))
     tree.print_tree()
 
