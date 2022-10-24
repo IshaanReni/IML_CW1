@@ -2,7 +2,7 @@ import numpy as np
 from decision_tree import Classifier #own script
 from prepare_data import prepare_data
 
-file_path = r'intro2ML-coursework1\wifi_db\noisy_dataset.txt'
+file_path = r'intro2ML-coursework1/wifi_db/noisy_dataset.txt'
 full_dataset = np.loadtxt(file_path).astype(np.int64)    #load data from text file into integer numpy array
 
 seed = 4
@@ -16,7 +16,10 @@ predictions = Classifier.predict(tree, test_data[:,:-1])
 print("first 30 predictions: \n", predictions[:30])
 print("first 30 ground truth: \n", test_data[:30,-1])
 
+confusion_matrixs = Classifier.confusion_matrix(test_data, predictions)
+
 print("Accuracy:", np.sum(predictions==test_data[:,-1])/len(predictions))
+print(confusion_matrixs)
 
 tree.print_tree()
 
