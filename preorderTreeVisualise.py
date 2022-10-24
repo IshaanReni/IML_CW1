@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection, PatchCollection
 import matplotlib.patches as patches
+from matplotlib.widgets import Slider
 
 # A class that represents an individual node in a
 nodes = []  # Rectangle objects with (x,y)
@@ -77,13 +78,13 @@ def plot_edges(nodes, order_list, depth_dist, label_Width, label_Height):
 
 def plot_preorder_tree(order_list, t_levels):
     # distance between parent node and child node (x axis)
-    width_dist = t_levels**2
+    width_dist = t_levels**(2)
     depth_dist = 20                                 # height between levels
     # width of the rectangle label for each node
-    label_Width = t_levels*1.7
+    label_Width = 25 #t_levels*1.7
     # height of the rectangle label for each node
-    label_Height = t_levels*0.4
-    font_size = t_levels*1.2  # font size on the label
+    label_Height = 7 #t_levels*0.4
+    font_size = 6 #t_levels*1.2  # font size on the label
 
     # print(order_list)
 
@@ -118,11 +119,14 @@ def plot_preorder_tree(order_list, t_levels):
     line_segments = LineCollection(
         segs, linewidths=1, colors='blue', linestyle='solid')
     tree_nodes = PatchCollection(
-        not_none_nodes, linewidth=1, edgecolor='green', facecolor='green') # ERROR if the tree containing unreachable branches due to None
+        not_none_nodes, linewidth=1, edgecolor='red', facecolor='green') # ERROR if the tree containing unreachable branches due to None
 
     # adding collection elements for edges
     ax.add_collection(line_segments)
     # adding collection elements for nodes
     ax.add_collection(tree_nodes)
 
+    plt.axis('off')
     plt.show()
+
+    

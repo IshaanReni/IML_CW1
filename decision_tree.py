@@ -112,7 +112,7 @@ class Classifier:
             min_col_entropy = 999999                    #will be replaced with lowest entropy
             data = dataset[:,[emitter,-1]]              # extract the router column and label
             sorted_data = data[data[:, 0].argsort()[::-1]]   # sort according to the router column values (makes splits more efficient)         
-            print("Emitter:: ", emitter)
+            # print("Emitter:: ", emitter)
             for split_point_index in range(1,len(sorted_data)):         #for each emitter value
                 less_split_array = sorted_data[:split_point_index]      # top half of the split column in array form
                 greater_split_array = sorted_data[split_point_index:]   # bottom half of the split column in array form
@@ -128,8 +128,8 @@ class Classifier:
             # print("min entropy: "+ str(min_entropy) + "; min_split (row value where to split): " + str(min_split)) ######
 
             # print(min_col_entropy < min_entropy,"=>", min_col_entropy,",", min_entropy)
-            print(history, [min_router, min_split])
-            print([min_router, min_split] in history)
+            # print(history, [min_router, min_split])
+            # print([min_router, min_split] in history)
             if [min_router, min_split] in history: #skip decision which the subset was already split by (using breadcrumbs)
                 pass
             else:
@@ -138,10 +138,10 @@ class Classifier:
                     min_split = min_col_split       # Which split value gave the lowest entropy sum overall
                     min_router = emitter            # Stores the index of the router with the best split so far
 
-            print("min router: "+ str(min_router) + "; min_split (row value where to split): " +str(min_split)) ######
+            # print("min router: "+ str(min_router) + "; min_split (row value where to split): " +str(min_split)) ######
         # print("outside less split:", str(sorted_data[:min_split]))
         # print("outside sorted data:", str(sorted_data))
-        print("outside dataset:", str(dataset[:,-1]))
+        # print("outside dataset:", str(dataset[:,-1]))
         assert(min_router!=-1 and min_split!=-1), f"Decision tree training error: decision={min_router, min_split}"#+ ("l_split_arr:", str(less_split_array))+ ("g_split_arr:", str(greater_split_array)) #error handling
         #print("g_split_arr:", greater_split_array)
         return min_router, min_split   # Returns the min router(column index) and the split(row index) for this.
