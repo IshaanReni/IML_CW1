@@ -10,10 +10,13 @@ random_gen = np.random.default_rng(seed)
 
 training_data, validation_data, test_data = prepare_data(full_dataset, test_prop=0.2, val_prop=0, random_gen=random_gen, save_name='attempt1')
 
-tree = Classifier.fit(training_data, max_depth=6)
-
+tree = Classifier.fit(training_data, max_depth=9)
 predictions = Classifier.predict(tree, test_data[:,:-1])
 
-print("Accuracy:", np.sum(predictions==test_data[:,-1]))
+print("first 30 predictions: \n", predictions[:30])
+print("first 30 ground truth: \n", test_data[:30,-1])
+
+print("Accuracy:", np.sum(predictions==test_data[:,-1])/len(predictions))
 
 tree.print_tree()
+
