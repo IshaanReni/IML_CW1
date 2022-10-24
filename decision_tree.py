@@ -128,12 +128,11 @@ class Classifier:
             # print("min entropy: "+ str(min_entropy) + "; min_split (row value where to split): " + str(min_split)) ######
 
             # print(min_col_entropy < min_entropy,"=>", min_col_entropy,",", min_entropy)
-
-            history_array = np.array(history)
-            check_array = np.array([min_router, min_split])
-            print(np.isin(history_array, check_array), np.isin(history_array, check_array).any())
-            if not np.isin(history_array, check_array).any(): #skip decision which the subset was already split by (using breadcrumbs)
-
+            print(history, [min_router, min_split])
+            print([min_router, min_split] in history)
+            if [min_router, min_split] in history: #skip decision which the subset was already split by (using breadcrumbs)
+                pass
+            else:
                 if (min_col_entropy < min_entropy):   # Checks if the entropy that was just calculated is lower than the lowest so far
                     min_entropy = min_col_entropy   # Replaces the value of the return variable with the entropy that was just calculated
                     min_split = min_col_split       # Which split value gave the lowest entropy sum overall
@@ -167,10 +166,15 @@ class Classifier:
             false_subset = data[data[:, attribute]>=value]    #complement set (doesn't follow condition)
             print("false_subset:", false_subset)
             print("-------------------")
-            decision_node.true_child, true_subtree_depth = Classifier.decision_tree_learning(true_subset, history, depth+1) #recursive call on true side of dataset
-            decision_node.false_child, false_subtree_depth = Classifier.decision_tree_learning(false_subset, history, depth+1) #recursive call on false side of dataset
-            history.pop() #remove last breadcrumb in history as we are going back up the tree
-            return (decision_node, max(true_subtree_depth, false_subtree_depth)) #returns node and current max depth to parent node
+            if (not true_subset.tolist()) or (not false_subset.tolist()):     #entropy is so similar that one partition is empty
+                room_plurality = room_labels[label_counts==max(label_counts)][0]   #predicted room is mode of room labels
+                leaf_node = Leaf(room_plurality)    #create leaf node with this room prediction
+                return leaf_node, depth     #return leaf node and current depth to parent node
+            else:   #recurse otherwise
+                decision_node.true_child, true_subtree_depth = Classifier.decision_tree_learning(true_subset, history, depth+1) #recursive call on true side of dataset
+                decision_node.false_child, false_subtree_depth = Classifier.decision_tree_learning(false_subset, history, depth+1) #recursive call on false side of dataset
+                history.pop() #remove last breadcrumb in history as we are going back up the tree
+                return (decision_node, max(true_subtree_depth, false_subtree_depth)) #returns node and current max depth to parent node
 
     #callable by other functions to commence training
     @classmethod
@@ -195,7 +199,7 @@ class Classifier:
 #default main when file ran individually
 if __name__ == "__main__":
     dataset = np.loadtxt(r'intro2ML-coursework1\wifi_db\noisy_dataset.txt').astype(np.int64)    #load data from text file into integer numpy array
-    tree = Classifier.fit(dataset, max_depth=10)
+    tree = Classifier.fit(dataset, max_depth=5)
     print("Prediction: ", Classifier.predict(tree, np.array([-64, -56, -61, -66, -71, -82, -81])))
     tree.print_tree()
 
