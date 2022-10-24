@@ -15,3 +15,5 @@ tree = Classifier.fit(training_data, max_depth=10)
 predictions = Classifier.predict(tree, test_data[:,:-1])
 
 print(np.sum(predictions==test_data[:,-1]))
+
+tree.print_tree()
