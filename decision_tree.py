@@ -1,6 +1,5 @@
 import numpy as np  #allowed
 from preorderTreeVisualise import plot_preorder_tree #own file
-import pickle #from Python standard library (allowed)
 import sys #from Python standard library (allowed)
 # from convertToPreorder import convert_to_preorder_array #own file
 
@@ -38,14 +37,6 @@ class DecisionTree:
         self.root = None            #beginning of tree
         self.final_depth = None     #used in case final tree depth is < max depth
         self.prev_column = 99999
-    
-    #save model to text file after training
-    def save_tree (self):
-        pass
-
-    #rebuild tree from saved model for predicting
-    def load_tree (self, filepath):
-        pass
 
     #recursively add nodes to list of lists and preorder list
     @classmethod
@@ -180,7 +171,7 @@ class Classifier:
 
     #callable by other functions to commence training
     @classmethod
-    def fit (cls, dataset, max_depth):
+    def fit (cls, dataset, max_depth=99):
         Classifier.max_depth = max_depth    #tree will stop constructing when this depth is reached
         Classifier.dataset = dataset
         tree = DecisionTree()     #instantiate blank tree
@@ -198,28 +189,24 @@ class Classifier:
         return predictions  #1D array of class labels (rooms) for each test
 
              
-    @classmethod
-    def confusion_matrix(cls, test_data, predictions):
-        confusion_matrix = [[]]
-        tests = test_data[:,-1]
-        for label in range(1,5):
-            actual_row = [0,0,0,0]      # initialise the row for each class
-            for index in range(len(predictions)):
-                if tests[index] == label:       # check whether for each class (label)
-                    if predictions[index] == label:     # check whether the prediction is correct
-                        actual_row[label-1] += 1        # add 1 if correct
-                    else:
-                        actual_row[predictions[index]-1] += 1      # add one for the column of the predicted value
-            nprow = np.array(actual_row)
-            confusion_matrix = np.append(confusion_matrix, actual_row)      # append for each class
+    # @classmethod
+    # def confusion_matrix(cls, test_data, predictions):
+    #     confusion_matrix = [[]]
+    #     tests = test_data[:,-1]
+    #     for label in np.unique(tests):
+    #         actual_row = [0,0,0,0]      # initialise the row for each class
+    #         for index in range(len(predictions)):
+    #             if tests[index] == label:       # check whether for each class (label)
+    #                 actual_row[predictions[index]-1] += 1      # add one for the column of the predicted value
+    #         confusion_matrix = np.append(confusion_matrix, actual_row)      # append for each class
 
-        return(confusion_matrix.reshape(4,4))
+    #     return(confusion_matrix.reshape(4,4))
 
 
 #default main when file ran individually
 if __name__ == "__main__":
     dataset = np.loadtxt(r'intro2ML-coursework1/wifi_db/noisy_dataset.txt').astype(np.int64)    #load data from text file into integer numpy array
-    tree = Classifier.fit(dataset, max_depth=20)
+    tree = Classifier.fit(dataset)
 
     #print("Prediction: ", Classifier.predict(tree, np.array([-64, -56, -61, -66, -71, -82, -81])))
     tree.print_tree()

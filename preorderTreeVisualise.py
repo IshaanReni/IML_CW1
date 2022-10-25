@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection, PatchCollection
 import matplotlib.patches as patches
 from matplotlib.widgets import Slider
+import math
 
 # A class that represents an individual node in a
 nodes = []  # Rectangle objects with (x,y)
@@ -81,9 +82,9 @@ def plot_preorder_tree(order_list, t_levels):
     width_dist = t_levels**(2)
     depth_dist = 20                                 # height between levels
     # width of the rectangle label for each node
-    label_Width = 25 #t_levels*1.7
+    label_Width = t_levels*2.4 #25
     # height of the rectangle label for each node
-    label_Height = 7 #t_levels*0.4
+    label_Height = t_levels*0.4 #7
     font_size = 6 #t_levels*1.2  # font size on the label
 
     # print(order_list)
@@ -125,6 +126,11 @@ def plot_preorder_tree(order_list, t_levels):
     ax.add_collection(line_segments)
     # adding collection elements for nodes
     ax.add_collection(tree_nodes)
+
+    legend = "Tree depth: " + str(t_levels) + "\n Nb branches: " + str(len(segs)) + "\n Nb leaves: " + str(math.ceil((len(segs)+1)/2)+1)
+
+    ax.text(-1.9*width_dist, -10, legend, style='italic',
+        bbox={'facecolor': 'none', 'alpha': 0.5, 'pad': 10})
 
     plt.axis('off')
     plt.show()
