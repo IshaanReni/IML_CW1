@@ -5,27 +5,52 @@ import sys #from Python standard library (allowed)
 
 np.set_printoptions(threshold=sys.maxsize) #print whole arrays
 
+
 class Node:
 #Tree node
 
-    def __init__(self):
+    def __init__(self, data):
         self.true_child = self.false_child = None   #left and right children initially pointing to None.
-
+        self.data = data    #subset at this point is used later for pruning (mode)
 
 class Decision (Node):
 #for non-leaves. Inherits Node class. Stores attribute and value of decision
 
-    def __init__(self, attribute, value):
-        super().__init__()          #run inherited __init__() first
+    def __init__(self, data, attribute, value):
+        super().__init__(data)          #run inherited __init__() first
         self.attribute = attribute  #which wifi emitter to split by (column index)
         self.value = value          #value by which to split into two subsets, for a given attribute
+
+    #backup branches means we don't have to work with a deepcopy of the original tree
+    #this self node will be 2 levels above the current leaves
+    def prune_child(self, child):
+        if child == True:
+            backup_branch = self.true_child #transfer the branch to be pruned into a backup pointer (in case accuracy decreases)
+            data = self.true_child.data #use child's data to choose class of leaf
+            room_labels, label_counts = np.unique(data[:, -1], return_counts=True) #get room labels and frequencies present in current subset
+            room_plurality = room_labels[label_counts==max(label_counts)][0]   #predicted room is mode of room labels
+            self.true_child = Leaf(data, room_plurality)    #replace child with leaf having this room prediction
+        elif child == False:
+            backup_branch = self.false_child #transfer the branch to be pruned into a backup pointer (in case accuracy decreases)
+            data = self.false_child.data #use child's data to choose class of leaf
+            room_labels, label_counts = np.unique(data[:, -1], return_counts=True) #get room labels and frequencies present in current subset
+            room_plurality = room_labels[label_counts==max(label_counts)][0]   #predicted room is mode of room labels
+            self.false_child = Leaf(data, room_plurality)    #replace child with leaf having this room prediction
+        return backup_branch    #used for undo
+    
+    #used when accuracy decreased after pruning
+    def undo_prune (self, child, backup_branch):
+        if child == True:
+            self.true_child = backup_branch
+        elif child == False:
+            self.false_child = backup_branch
 
 
 class Leaf (Node):
 #for leaves. Inherits Node class. Stores class label (room no.) for prediction
     
-    def __init__(self, room):
-        super().__init__()          #run inherited __init__() first
+    def __init__(self, data, room):
+        super().__init__(data)          #run inherited __init__() first
         self.room = room            #final predicted class label
 
 
@@ -35,8 +60,36 @@ class DecisionTree:
     #constructor for a tree
     def __init__(self):
         self.root = None            #beginning of tree
-        self.final_depth = None     #used in case final tree depth is < max depth
-        self.prev_column = 99999
+        self.prev_column = 99999    #to ensure we split by a different column each time in the tree
+
+    #more efficient method of counting tree stats than making tree_lists every time.
+    def tree_properties(self, node, nodes=1, leaves=0, depth=1):
+        if type(node) is Leaf:
+            return nodes, leaves+1, depth
+        nodes, leaves, true_subtree_depth = self.tree_properties(node.true_child, nodes+1, leaves, depth+1)
+        nodes, leaves, false_subtree_depth = self.tree_properties(node.false_child, nodes+1, leaves, depth+1)
+        return nodes, leaves, max(true_subtree_depth, false_subtree_depth)
+
+    #call to get number of nodes of tree as it stands
+    def get_nodes(self):
+        return self.tree_properties(self.root)[0]
+    
+    #call to get number of leaves of tree as it stands
+    def get_leaves(self):
+        return self.tree_properties(self.root)[1]
+
+    #call to get depth of tree as it stands
+    def get_depth(self):
+        return self.tree_properties(self.root)[2]
+
+    #traverses tree for prediction
+    def search_tree(self, node, test_vals):
+        if type(node) is Leaf:
+            return node.room                                    #return final room prediction from leaf of tree
+        elif test_vals[node.attribute] > node.value:            #check if (test) wifi strength on emitter (from tree) is greater than node's decision value 
+            return self.search_tree(node.true_child, test_vals) #go down left recursively
+        else:
+            return self.search_tree(node.false_child, test_vals) #go down right recursively
 
     #recursively add nodes to list of lists and preorder list
     @classmethod
@@ -55,18 +108,9 @@ class DecisionTree:
             tree_list, preorder_list = DecisionTree.tree_lists(node.false_child, tree_list, preorder_list, max_level, level+1, 2*num + 1) #level-order node number = 2*num + 1 for right branches
         return tree_list, preorder_list
     
-    #traverses tree for prediction
-    def search_tree(self, node, test_vals):
-        if type(node) is Leaf:
-            return node.room                                    #return final room prediction from leaf of tree
-        elif test_vals[node.attribute] > node.value:            #check if (test) wifi strength on emitter (from tree) is greater than node's decision value 
-            return self.search_tree(node.true_child, test_vals) #go down left recursively
-        else:
-            return self.search_tree(node.false_child, test_vals) #go down right recursively
-    
     #creates a nested level-order tree list for human-readability, and an inorder list for plotting
     def print_tree (self, depth=999999):
-        list_depth = min(depth, self.final_depth)                                       #print depth can be overwritten by arg
+        list_depth = min(depth, self.get_depth())     #print depth can be overwritten by arg
         tree_list = [[None for node in range(2**level)] for level in range(list_depth)] #blank nested list with perfect tree size
         tree_list, preorder_list = DecisionTree.tree_lists(self.root, tree_list, [], list_depth, level=1, num=0)  #traverse tree and add to list
         #print("Tree list:\n")
@@ -146,11 +190,11 @@ class Classifier:
         room_labels, label_counts = np.unique(data[:, -1], return_counts=True) #get room labels and frequencies present in current subset
         if len(room_labels) == 1 or depth == Classifier.max_depth:    #if all samples from the same room or max_depth reached (early stopping)
             room_plurality = room_labels[label_counts==max(label_counts)][0]   #predicted room is mode of room labels
-            leaf_node = Leaf(room_plurality)    #create leaf node with this room prediction
+            leaf_node = Leaf(data, room_plurality)    #create leaf node with this room prediction
             return leaf_node, depth     #return leaf node and current depth to parent node
         else:
             attribute, value = Classifier.find_split(data, tree)    #find optimal attribute and value to split by for this subset
-            decision_node = Decision(attribute, value)        #create new node based on split choices
+            decision_node = Decision(data, attribute, value)        #create new node based on split choices
             #print("Attribute:", attribute)
             #print("Value:", value)
             true_subset = data[data[:, attribute]>value]      #subset which follows the condition "attribute > value"
@@ -162,12 +206,27 @@ class Classifier:
             # print("f:", false_subset[:,-1])###
             if (not true_subset.tolist()) or (not false_subset.tolist()):     #entropy is so similar that one partition is empty
                 room_plurality = room_labels[label_counts==max(label_counts)][0]   #predicted room is mode of room labels
-                leaf_node = Leaf(room_plurality)    #create leaf node with this room prediction
+                leaf_node = Leaf(data, room_plurality)    #create leaf node with this room prediction
                 return leaf_node, depth     #return leaf node and current depth to parent node
             else:   #recurse otherwise
                 decision_node.true_child, true_subtree_depth = Classifier.decision_tree_learning(true_subset, tree, depth+1) #recursive call on true side of dataset
                 decision_node.false_child, false_subtree_depth = Classifier.decision_tree_learning(false_subset, tree, depth+1) #recursive call on false side of dataset
-                return (decision_node, max(true_subtree_depth, false_subtree_depth)) #returns node and current max depth to parent node
+                return decision_node, max(true_subtree_depth, false_subtree_depth) #returns node and current max depth to parent node
+
+    #recursive function which prunes a decision tree while calculating accuracy at each step
+    @classmethod
+    def decision_tree_pruning (cls, tree, node):
+        #######incomplete test of prune_child(). This should prune everything
+        if type(node) is Leaf:
+            return False
+        prune_signal = Classifier.decision_tree_pruning(tree, node.true_child)
+        if prune_signal == True:
+            backup_branch = node.prune_child(child=True)
+        prune_signal = Classifier.decision_tree_pruning(tree, node.false_child)
+        if prune_signal == True:
+            backup_branch = node.prune_child(child=False)
+        if type(node.true_child) is Leaf and type(node.false_child) is Leaf:
+            return True
 
     #callable by other functions to commence training
     @classmethod
@@ -175,7 +234,7 @@ class Classifier:
         Classifier.max_depth = max_depth    #tree will stop constructing when this depth is reached
         Classifier.dataset = dataset
         tree = DecisionTree()     #instantiate blank tree
-        tree.root, tree.final_depth = Classifier.decision_tree_learning(Classifier.dataset, tree)  #start recursive training process
+        tree.root = Classifier.decision_tree_learning(Classifier.dataset, tree)[0]  #start recursive training process
         return tree
 
     #querying algorithm to traverse through the decision tree to allocate room numbers to test data entered
@@ -189,20 +248,6 @@ class Classifier:
         return predictions  #1D array of class labels (rooms) for each test
 
              
-    # @classmethod
-    # def confusion_matrix(cls, test_data, predictions):
-    #     confusion_matrix = [[]]
-    #     tests = test_data[:,-1]
-    #     for label in np.unique(tests):
-    #         actual_row = [0,0,0,0]      # initialise the row for each class
-    #         for index in range(len(predictions)):
-    #             if tests[index] == label:       # check whether for each class (label)
-    #                 actual_row[predictions[index]-1] += 1      # add one for the column of the predicted value
-    #         confusion_matrix = np.append(confusion_matrix, actual_row)      # append for each class
-
-    #     return(confusion_matrix.reshape(4,4))
-
-
 #default main when file ran individually
 if __name__ == "__main__":
     dataset = np.loadtxt(r'intro2ML-coursework1/wifi_db/noisy_dataset.txt').astype(np.int64)    #load data from text file into integer numpy array

@@ -31,5 +31,19 @@ for room in range(len(precisions)):
     print(f"Recall for room {room+1}: {recalls[room]:.6f}")
     print(f"F1 for room {room+1}: {f1s[room]:.6f}")
 
+nodes, leaves, depth = tree.tree_properties(tree.root)
+print("Tree with:")
+print(f"\t{nodes} nodes")
+print(f"\t{leaves} leaves")
+print(f"\t{depth} depth")
+tree.print_tree()
+
+Classifier.decision_tree_pruning(tree, tree.root)
+
+nodes, leaves, depth = tree.tree_properties(tree.root)
+print("Tree with:")
+print(f"\t{nodes} nodes")
+print(f"\t{leaves} leaves")
+print(f"\t{depth} depth")
 tree.print_tree()
 

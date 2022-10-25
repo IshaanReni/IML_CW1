@@ -5,19 +5,9 @@ import matplotlib.patches as patches
 from matplotlib.widgets import Slider
 import math
 
-# A class that represents an individual node in a
-nodes = []  # Rectangle objects with (x,y)
-
-# class Node:
-#     def __init__(self, key):
-#         self.left = None
-#         self.right = None
-#         self.val = key
-
 # # A function to do preorder tree traversal
 
-
-def preorder_binaryTree_gen(order_list, levels, x, y, width, depth_dist, label_Width, label_Height):
+def preorder_binaryTree_gen(order_list, nodes, levels, x, y, width, depth_dist, label_Width, label_Height):
         # calculating the coords for the left and right child node
         xl = x - width/2
         yl = y - depth_dist
@@ -36,11 +26,11 @@ def preorder_binaryTree_gen(order_list, levels, x, y, width, depth_dist, label_W
 
         if levels > 1:
             # Then recur on left child
-            preorder_binaryTree_gen(order_list, levels - 1, xl, yl, width/2,
+            preorder_binaryTree_gen(order_list, nodes, levels - 1, xl, yl, width/2,
                                  depth_dist, label_Width, label_Height)
 
             # Finally recur on right child
-            preorder_binaryTree_gen(order_list, levels - 1, xr, yr, width/2,
+            preorder_binaryTree_gen(order_list, nodes, levels - 1, xr, yr, width/2,
                                  depth_dist, label_Width, label_Height)
 
 
@@ -78,6 +68,8 @@ def plot_edges(nodes, order_list, depth_dist, label_Width, label_Height):
 
 
 def plot_preorder_tree(order_list, t_levels):
+    # A class that represents an individual node in a
+    nodes = []  # Rectangle objects with (x,y)
     # distance between parent node and child node (x axis)
     width_dist = t_levels**(2)
     depth_dist = 20                                 # height between levels
@@ -89,7 +81,7 @@ def plot_preorder_tree(order_list, t_levels):
 
     # print(order_list)
 
-    preorder_binaryTree_gen(order_list, t_levels, 0, 0, width_dist, depth_dist, label_Width, label_Height)  # initial call of the gen tree function
+    preorder_binaryTree_gen(order_list, nodes, t_levels, 0, 0, width_dist, depth_dist, label_Width, label_Height)  # initial call of the gen tree function
 
     fig, ax = plt.subplots()  # set axis contraints
     ax.set_ylim(-(t_levels * depth_dist + 5), 5)
@@ -127,7 +119,9 @@ def plot_preorder_tree(order_list, t_levels):
     # adding collection elements for nodes
     ax.add_collection(tree_nodes)
 
-    legend = "Tree depth: " + str(t_levels) + "\n Nb branches: " + str(len(segs)) + "\n Nb leaves: " + str(math.ceil((len(segs)+1)/2)+1)
+    legend = (f"Tree depth: {t_levels}\n"
+              f"Branches: {len(segs)}\n"
+              f"Leaves: {math.ceil((len(segs)+2)/2)}")
 
     ax.text(-1.9*width_dist, -10, legend, style='italic',
         bbox={'facecolor': 'none', 'alpha': 0.5, 'pad': 10})
