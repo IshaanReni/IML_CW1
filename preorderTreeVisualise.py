@@ -47,7 +47,7 @@ def plot_edges(nodes, order_list, depth_dist, label_Width, label_Height):
             y_child_l = y_n - depth_dist
             x_child_r = x_n + float(n.get_label().split(',')[0])/2 
             y_child_r = y_n - depth_dist
-            # print("node_index:",n.get_label().split(',')[1],
+            # print("node_index:",n.get_label().split(',')[1], ", label: ", order_list[int(n.get_label().split(',')[1])],
             #         ",nodes checking for edges: ",x_n,";",y_n, " - children: left::", x_child_l,";",y_child_l,
             #         " right::", x_child_r,";",y_child_r )
             for n2 in nodes:
@@ -55,10 +55,10 @@ def plot_edges(nodes, order_list, depth_dist, label_Width, label_Height):
                     x_n2, y_n2 = n2.get_xy()
                     # print("label of n2: ",order_list[int(n2.get_label().split(',')[1])])
                     if order_list[int(n2.get_label().split(',')[1])] != None:
-                        if x_n2 == x_child_l and y_n2 == y_child_l:
+                        if round(x_n2,4) == round(x_child_l,4) and round(y_n2,4) == round(y_child_l,4):
                             segments.append([[x_n + label_Width/2, y_n], [x_n2 + label_Width/2, y_n2 + label_Height]])
                             max_children_nodes=max_children_nodes-1
-                        elif x_n2 == x_child_r and y_n2 == y_child_r:
+                        elif round(x_n2,4) == round(x_child_r,4) and round(y_n2,4) == round(y_child_r,4):
                             segments.append([[x_n + label_Width/2, y_n], [x_n2 + label_Width/2, y_n2 + label_Height]])
                             max_children_nodes=max_children_nodes-1
                 else:
