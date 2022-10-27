@@ -1,7 +1,10 @@
-import numpy as np  #allowed
+from types import NoneType
+import numpy as np
+from evaluation import calc_accuracy  #allowed
 from preorderTreeVisualise import plot_preorder_tree #own file
+import evaluation #own file
 import sys #from Python standard library (allowed)
-# from convertToPreorder import convert_to_preorder_array #own file
+import copy #from Python standard library (allowed)
 
 np.set_printoptions(threshold=sys.maxsize) #print whole arrays
 
@@ -39,7 +42,7 @@ class Decision (Node):
         return backup_branch    #used for undo
     
     #used when accuracy decreased after pruning
-    def undo_prune (self, child, backup_branch):
+    def undo_prune (self, backup_branch, child):
         if child == True:
             self.true_child = backup_branch
         elif child == False:
@@ -58,9 +61,11 @@ class DecisionTree:
 #Tree stores root node
 
     #constructor for a tree
-    def __init__(self):
-        self.root = None            #beginning of tree
-        self.prev_column = 99999    #to ensure we split by a different column each time in the tree
+    def __init__(self, max_depth):
+        self.root = None                #beginning of tree
+        self.max_depth = max_depth
+        self.prev_column = 99999        #to ensure we split by a different column each time in the tree
+        self.current_accuracy = None    #Used during the pruning stage
 
     #more efficient method of counting tree stats than making tree_lists every time.
     def tree_properties(self, node, nodes=1, leaves=0, depth=1):
@@ -127,9 +132,6 @@ class DecisionTree:
 class Classifier:
 #contains functions and class variables outside the DecisionTree scope
 
-    max_depth = None    #early stopping criteria for trees
-    dataset = None      #full data array from file
-
     @classmethod 
     def entropy_calc(cls, split_array):       # calculation of the entropy for a specific column split (top or bottom)
         unique, counts = np.unique(split_array[:,1], return_counts=True)    #frequency of each room in array
@@ -188,7 +190,7 @@ class Classifier:
     @classmethod
     def decision_tree_learning (cls, data, tree, depth=1):   #depth 1 by default
         room_labels, label_counts = np.unique(data[:, -1], return_counts=True) #get room labels and frequencies present in current subset
-        if len(room_labels) == 1 or depth == Classifier.max_depth:    #if all samples from the same room or max_depth reached (early stopping)
+        if len(room_labels) == 1 or depth == tree.max_depth:    #if all samples from the same room or max_depth reached (early stopping)
             room_plurality = room_labels[label_counts==max(label_counts)][0]   #predicted room is mode of room labels
             leaf_node = Leaf(data, room_plurality)    #create leaf node with this room prediction
             return leaf_node, depth     #return leaf node and current depth to parent node
@@ -215,26 +217,42 @@ class Classifier:
 
     #recursive function which prunes a decision tree while calculating accuracy at each step
     @classmethod
-    def decision_tree_pruning (cls, tree, node):
-        #######incomplete test of prune_child(). This should prune everything
+    def decision_tree_pruning (cls, tree, node, validation_set):
         if type(node) is Leaf:
             return False
-        prune_signal = Classifier.decision_tree_pruning(tree, node.true_child)
-        if prune_signal == True:
-            backup_branch = node.prune_child(child=True)
-        prune_signal = Classifier.decision_tree_pruning(tree, node.false_child)
-        if prune_signal == True:
-            backup_branch = node.prune_child(child=False)
-        if type(node.true_child) is Leaf and type(node.false_child) is Leaf:
+        prune_signal = Classifier.decision_tree_pruning(tree, node.true_child, validation_set)  #recursive step (post-order)
+        if prune_signal == True:    #This will be True if the true child has 2 leaves
+            backup_branch = node.prune_child(child=True)    #Turn this child into a leaf 
+            predictions = Classifier.predict(tree, validation_set[:,:-1]) #used to help evaluate the accuracy of the original tree
+            temp_accuracy = evaluation.calc_accuracy(validation_set, predictions) #sets the benchmark accuracy for original tree stored in the pruned tree.
+            if tree.current_accuracy:
+                if temp_accuracy < tree.current_accuracy:
+                    node.undo_prune(backup_branch, child=True)  #Undoes the pruning to revert the tree to the state it was in to retain a higher accuracy.
+            else:
+                tree.current_accuracy = temp_accuracy
+            # print("current_acc: ", tree.current_accuracy)
+            #Check the accuracy of the freshly pruned tree
+            #Decide if we undo the change or retain it.
+        prune_signal = Classifier.decision_tree_pruning(tree, node.false_child, validation_set)  #recursive step (post-order)
+        if prune_signal == True:    #This will be True if the false child has 2 leaves
+            backup_branch = node.prune_child(child=False)    #Turn this child into a leaf
+            predictions = Classifier.predict(tree, validation_set[:,:-1]) #used to help evaluate the accuracy of the original tree
+            temp_accuracy = evaluation.calc_accuracy(validation_set, predictions) #sets the benchmark accuracy for original tree stored in the pruned tree.
+            if tree.current_accuracy:
+                if temp_accuracy < tree.current_accuracy:
+                    node.undo_prune(backup_branch, child=False) #Undoes the pruning to revert the tree to the state it was in to retain a higher accuracy.
+            else:
+                tree.current_accuracy = temp_accuracy
+
+            # print("current_acc: ", tree.current_accuracy)
+        if type(node.true_child) is Leaf and type(node.false_child) is Leaf:    #send prune signal if both children are leaves
             return True
 
     #callable by other functions to commence training
     @classmethod
-    def fit (cls, dataset, max_depth=99):
-        Classifier.max_depth = max_depth    #tree will stop constructing when this depth is reached
-        Classifier.dataset = dataset
-        tree = DecisionTree()     #instantiate blank tree
-        tree.root = Classifier.decision_tree_learning(Classifier.dataset, tree)[0]  #start recursive training process
+    def fit (cls, dataset, max_depth=999):
+        tree = DecisionTree(max_depth)     #instantiate blank tree
+        tree.root = Classifier.decision_tree_learning(dataset, tree)[0]  #start recursive training process
         return tree
 
     #querying algorithm to traverse through the decision tree to allocate room numbers to test data entered
@@ -246,16 +264,24 @@ class Classifier:
             predictions.append(tree.search_tree(tree.root, test))
         predictions = np.array(predictions)
         return predictions  #1D array of class labels (rooms) for each test
+    
+    #testing original accuracy and returning a pruned copy of the tree
+    @classmethod
+    def prune (cls, tree, validation_set):
+        pruned_tree = copy.deepcopy(tree) #recursively makes a copy of the structure by creating new instances
+        predictions = Classifier.predict(tree, validation_set[:,:-1]) #used to help evaluate the accuracy of the original tree
+        Classifier.decision_tree_pruning(pruned_tree, pruned_tree.root, validation_set)
+        depth = pruned_tree.get_depth()
+        return pruned_tree, depth
 
              
-#default main when file ran individually
-if __name__ == "__main__":
-    dataset = np.loadtxt(r'intro2ML-coursework1/wifi_db/noisy_dataset.txt').astype(np.int64)    #load data from text file into integer numpy array
-    tree = Classifier.fit(dataset)
+# #default main when file ran individually
+# if __name__ == "__main__":
+#     dataset = np.loadtxt(r'intro2ML-coursework1/wifi_db/noisy_dataset.txt').astype(np.int64)    #load data from text file into integer numpy array
+#     tree = Classifier.fit(dataset)
 
-    #print("Prediction: ", Classifier.predict(tree, np.array([-64, -56, -61, -66, -71, -82, -81])))
-    tree.print_tree()
+#     #print("Prediction: ", Classifier.predict(tree, np.array([-64, -56, -61, -66, -71, -82, -81])))
+#     tree.print_tree()
 
-    #-64 -56 -61 -66 -71 -82 -81 1
 
 
