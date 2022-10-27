@@ -1,29 +1,3 @@
-# def calculate_entropie(y):
-#     # calculate the counts of each unique value in the label
-#     values, counts = np.unique(y, return_counts=True)
-#     # calculate the entropy
-#     entropie = 0
-#     for count in counts:
-#         entropie += (-count / np.sum(counts)) * np.log2(count / np.sum(counts))
-#     return entropie
-    
-
-# #information gain function 
-# def information_gain(X, y, attribute):
-#     # calculate the entropy of the whole dataset
-#     entropy = calculate_entropie(y)
-#     # calculate the values and the corresponding counts for the split attribute
-#     values, counts = np.unique(X[:, attribute], return_counts=True)
-#     # calculate the weighted entropy
-#     weighted_entropie = 0
-#     for value, count in zip(values, counts):
-#         weighted_entropie += (count / np.sum(counts)) * calculate_entropie(y[X[:, attribute] == value])
-#     # calculate the information gain
-#     information_gain = entropy - weighted_entropie
-#     return information_gain
-
-
-#test the cross validation
 import numpy as np
 
 def crossval(full_dataset, random_gen=np.random.default_rng(8), outer_folds=10, inner_folds=9):
@@ -45,13 +19,13 @@ def crossval(full_dataset, random_gen=np.random.default_rng(8), outer_folds=10, 
     #     test_data = full_dataset[shuffled_ind[steps:test_amount+steps]]
     #     test_folds.append(test_data)
     full_dataset_copy = full_dataset.copy()
-    for fold in range(outer_folds+1):
+    for fold in range(outer_folds):
         print(full_dataset_copy)
         test_data = full_dataset_copy[shuffled_ind[:test_amount]]      #from test to test+val is validation data
         fold_dataset = full_dataset_copy[shuffled_ind[test_amount:]]     #everything after test and val is training data 
         test_folds.append(test_data)
         full_dataset_copy = np.roll(full_dataset_copy, test_amount, axis=0)  #shifts the rows downwards by a set amount. Kind of like a ring ruffer.
-        for fold_in in range(inner_folds+1):
+        for fold_in in range(inner_folds):
             # print(fold_dataset)
             val_data = fold_dataset[shuffled_ind_small[:val_amount]]      #from test to test+val is validation data
             train_data = fold_dataset[shuffled_ind_small[val_amount:]]     #everything after test and val is training data 
@@ -63,5 +37,6 @@ def crossval(full_dataset, random_gen=np.random.default_rng(8), outer_folds=10, 
             print("test_data", test_data)
             print("val_data", val_data)
             print("train_data", train_data)
+    
     #####RETURN METRICS
     return np.array(test_folds), np.array(val_folds), np.array(train_folds)
