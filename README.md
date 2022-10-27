@@ -13,4 +13,5 @@ In order train and test the model. Use the following command.
 ````shell
 python3 accuracy_test1.py
 ````
+=======
 When prompted input the name of the db file (with `.txt` extension)
