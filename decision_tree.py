@@ -148,8 +148,8 @@ class Classifier:
         min_split = -1  #default value which should be overwritten
 
         numcols = [i for i in range(np.size(dataset,1)-1)]     #numbers 0..6
-        try: numcols.pop(tree.prev_column)       #don't check previous column
-        except: pass
+        # try: numcols.pop(tree.prev_column)       #don't check previous column
+        # except: pass
         for emitter in numcols:                #for each column (not including previous)
             min_col_entropy = 999999                    #will be replaced with lowest entropy
             data = dataset[:,[emitter,-1]]              # extract the router column and label
@@ -206,9 +206,11 @@ class Classifier:
             #print("-------------------")
             # print("t:", true_subset[:,-1])###
             # print("f:", false_subset[:,-1])###
-            if (not true_subset.tolist()) or (not false_subset.tolist()):     #entropy is so similar that one partition is empty
+            if (not true_subset.tolist()) or (not false_subset.tolist()):     #entropy is so similar that one partition is empty ####we should never enter this domain.
                 room_plurality = room_labels[label_counts==max(label_counts)][0]   #predicted room is mode of room labels
                 leaf_node = Leaf(data, room_plurality)    #create leaf node with this room prediction
+                print("t:", true_subset[:,-1])###
+                print("f:", false_subset[:,-1])###
                 return leaf_node, depth     #return leaf node and current depth to parent node
             else:   #recurse otherwise
                 decision_node.true_child, true_subtree_depth = Classifier.decision_tree_learning(true_subset, tree, depth+1) #recursive call on true side of dataset
@@ -228,6 +230,8 @@ class Classifier:
             if tree.current_accuracy:
                 if temp_accuracy < tree.current_accuracy:
                     node.undo_prune(backup_branch, child=True)  #Undoes the pruning to revert the tree to the state it was in to retain a higher accuracy.
+                else:
+                    tree.current_accuracy = temp_accuracy
             else:
                 tree.current_accuracy = temp_accuracy
             # print("current_acc: ", tree.current_accuracy)
@@ -241,10 +245,13 @@ class Classifier:
             if tree.current_accuracy:
                 if temp_accuracy < tree.current_accuracy:
                     node.undo_prune(backup_branch, child=False) #Undoes the pruning to revert the tree to the state it was in to retain a higher accuracy.
+                else:
+                    tree.current_accuracy = temp_accuracy
             else:
                 tree.current_accuracy = temp_accuracy
 
             # print("current_acc: ", tree.current_accuracy)
+        # print("updated accuracy", tree.current_accuracy)
         if type(node.true_child) is Leaf and type(node.false_child) is Leaf:    #send prune signal if both children are leaves
             return True
 
@@ -269,7 +276,6 @@ class Classifier:
     @classmethod
     def prune (cls, tree, validation_set):
         pruned_tree = copy.deepcopy(tree) #recursively makes a copy of the structure by creating new instances
-        predictions = Classifier.predict(tree, validation_set[:,:-1]) #used to help evaluate the accuracy of the original tree
         Classifier.decision_tree_pruning(pruned_tree, pruned_tree.root, validation_set)
         depth = pruned_tree.get_depth()
         return pruned_tree, depth

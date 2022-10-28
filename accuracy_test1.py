@@ -11,39 +11,58 @@ import sys
 # else:
 #     file_name = 'noisy_dataset.txt'
 # # file_path = r'intro2ML-coursework1/wifi_db/' + 'file_name'
-file_path = r'intro2ML-coursework1/wifi_db/clean_dataset.txt'
-# file_path = r'/IML_CW1/intro2ML-coursework1/wifi_db/noisy_dataset.txt'
+# file_path = r'intro2ML-coursework1/wifi_db/clean_dataset.txt'
+file_path = r'intro2ML-coursework1/wifi_db/noisy_dataset.txt'
 full_dataset = np.loadtxt(file_path).astype(np.int64)    #load data from text file into integer numpy array
 
 # full_dataset = np.array([[1,1,1,1,1,1],[2,2,2,2,2,2],[3,3,3,3,3,3],[4,4,4,4,4,4]])
 seed = 4
 random_gen = np.random.default_rng(seed)
 
-train_fold, val_fold, test_fold = cross_val(full_dataset, random_gen=random_gen)
+test_fold, val_fold, train_fold = cross_val(full_dataset, random_gen=random_gen)
 # train_fold, val_fold, test_fold = crossval(full_dataset, random_gen=random_gen, outer_folds=4, inner_folds=3)
-print(test_fold[0:3,:-1])
-print(np.shape(test_fold))
+# print(test_fold[0][:-1])
+print('test_fold:  ',np.shape(test_fold))
+print('val_fold:   ',np.shape(val_fold))
+print('train_fold: ',np.shape(train_fold))
 # print(val_fold[0:2])
 # print(train_fold[0:2])
 # quit()
 # train_fold, val_fold, test_fold = cross_val(full_dataset, test_prop=0.1, val_prop=0.1, random_gen=random_gen)
-sum = 0
-sum_pruned = 0
+
+val_sum = 0
+sum_val_pruned = 0
+sum_val_pruned_two = 0
+test_sum = 0
+sum_test_pruned = 0
+sum_test_pruned_two = 0
 # training_data, validation_data, test_data = prepare_data(full_dataset, test_prop=0.1, val_prop=0.1, random_gen=random_gen, save_name='attempt1')
-for index in range(len(train_fold)):
-    training_data = train_fold[index]
-    validation_data = val_fold[index]
-    test_data = test_fold[index%9]
-    print(test_data[0:3])
+for index in range(len(train_fold)): 
+    training_data = np.array(train_fold[index])
+    validation_data = np.array(val_fold[index])
+    test_data = np.array(test_fold[index%9])
+    # print('some test data: ', test_data[:])
+    # print('some test data[:,:-1]: ', test_data[:,:-1])
 
     tree = Classifier.fit(training_data)
-    predictions = Classifier.predict(tree, test_data[:,:-1])
 
-    confusion_matrix = evaluation.calc_confusion_matrix(test_data, predictions)
-    acc = evaluation.calc_accuracy(test_data, predictions)
+    # ACCURACY OF OVERFITTED TREE ONTO VALIDATION DATA
+    val_predictions = Classifier.predict(tree, validation_data[:,:-1])
+    val_confusion_matrix = evaluation.calc_confusion_matrix(validation_data, val_predictions) 
+    val_acc = evaluation.calc_accuracy(validation_data, val_predictions)
 
-    print("Accuracy:", acc)
-    sum += acc
+    print('--- FOLD ', index,' ---')
+    print("Accuracy(original, validation):", val_acc)
+    val_sum += val_acc
+
+    # ACCURACY OF OVERFITTED TREE ONTO TEST DATA
+    predictions = Classifier.predict(tree, test_data[:,:-1]) #test_data
+    confusion_matrix = evaluation.calc_confusion_matrix(test_data, predictions) #test_data
+    test_acc = evaluation.calc_accuracy(test_data, predictions) #test_data
+
+    print("Accuracy(original, test):", test_acc)
+    test_sum += test_acc
+
 
     precisions = evaluation.calc_precision(confusion_matrix)
     recalls = evaluation.calc_recall(confusion_matrix)
@@ -53,30 +72,83 @@ for index in range(len(train_fold)):
         # print(f"Recall for room {room+1}: {recalls[room]:.6f}")
         # print(f"F1 for room {room+1}: {f1s[room]:.6f}")
 
-    # nodes, leaves, depth = tree.tree_properties(tree.root)
+    nodes, leaves, depth = tree.tree_properties(tree.root)
     # print("Tree with:")
-    # print(f"\t{nodes} nodes")
+    print(f"\t{nodes} nodes")
     # print(f"\t{leaves} leaves")
-    # print(f"\t{depth} depth")
+    print(f"\t{depth} depth")
     # tree.print_tree()
 
-    Classifier.decision_tree_pruning(tree, tree.root, validation_data)
-    predictions_pruned = Classifier.predict(tree, test_data[:,:-1])
+    # PRUNED TREE
+    print('////')
+    pruned_tree, depth = Classifier.prune(tree, validation_data)
+    # VALIDATION ACCURACY SANITY CHECK
+    val_predictions_pruned = Classifier.predict(pruned_tree, validation_data[:,:-1]) #test_data[:,:-1]
+    val_confusion_matrix_pruned = evaluation.calc_confusion_matrix(validation_data, val_predictions_pruned) #test_data
+    val_acc_pruned = evaluation.calc_accuracy(validation_data, val_predictions_pruned) #test_data
+    print("Accuracy Pruned(validation):", val_acc_pruned)
+    sum_val_pruned += val_acc_pruned
 
-    confusion_matrix_pruned = evaluation.calc_confusion_matrix(test_data, predictions_pruned)
-    acc_pruned = evaluation.calc_accuracy(test_data, predictions_pruned)
+    # TEST DATA ON THE PRUNED TREE 
+    test_predictions_pruned = Classifier.predict(pruned_tree, test_data[:,:-1]) #test_data[:,:-1]
+    test_confusion_matrix_pruned = evaluation.calc_confusion_matrix(test_data, test_predictions_pruned) #test_data
+    test_acc_pruned = evaluation.calc_accuracy(test_data, test_predictions_pruned) #test_data
+    print("Accuracy Pruned(test):", test_acc_pruned)
+    sum_test_pruned += test_acc_pruned
 
-    print("Accuracy Pruned:", acc_pruned)
-    sum_pruned += acc_pruned
-    # nodes, leaves, depth = tree.tree_properties(tree.root)
+    nodes, leaves, depth = pruned_tree.tree_properties(pruned_tree.root)
     # print("Tree with:")
-    # print(f"\t{nodes} nodes")
+    print(f"\t{nodes} nodes")
     # print(f"\t{leaves} leaves")
-    # print(f"\t{depth} depth")
+    print(f"\t{depth} depth")
     # tree.print_tree()
+    # print('clasifier acc: ', pruned_tree.current_accuracy)
+    # diff = pruned_tree.current_accuracy - acc_pruned
+    diff_val = val_acc_pruned - val_acc
+    print("Difference(validation): ", diff_val)
+    diff_test = test_acc_pruned - test_acc
+    print("Difference(test): ", diff_test)
+    
 
-avg = sum/len(train_fold)
-avg_pruned = sum_pruned/len(train_fold)
-print("Average: ", avg)
-print("Average Pruned: ", avg_pruned)
+    # SECOND ROUND OF PRUNING
+    # print('////')
+    # pruned_tree_two, depth = Classifier.prune(tree, validation_data)
+    # # VALIDATION ACCURACY SANITY CHECK
+    # val_predictions_pruned_two = Classifier.predict(pruned_tree_two, validation_data[:,:-1]) #test_data[:,:-1]
+    # val_confusion_matrix_pruned_two = evaluation.calc_confusion_matrix(validation_data, val_predictions_pruned_two) #test_data
+    # val_acc_pruned_two = evaluation.calc_accuracy(validation_data, val_predictions_pruned_two) #test_data
+    # print("Accuracy Pruned(validation):", val_acc_pruned_two)
+    # sum_val_pruned_two += val_acc_pruned_two
+
+    # # TEST DATA ON THE PRUNED TREE 
+    # test_predictions_pruned_two = Classifier.predict(pruned_tree_two, test_data[:,:-1]) #test_data[:,:-1]
+    # test_confusion_matrix_pruned_two = evaluation.calc_confusion_matrix(test_data, test_predictions_pruned_two) #test_data
+    # test_acc_pruned_two = evaluation.calc_accuracy(test_data, test_predictions_pruned_two) #test_data
+    # print("Accuracy Pruned(test):", test_acc_pruned_two)
+    # sum_test_pruned_two += test_acc_pruned_two
+
+    # nodes, leaves, depth = pruned_tree_two.tree_properties(pruned_tree_two.root)
+    # # print("Tree with:")
+    # print(f"\t{nodes} nodes")
+    # # print(f"\t{leaves} leaves")
+    # print(f"\t{depth} depth")
+        
+
+# AVERAGES FOR VALIDATION DATA
+print('dataset used: ',file_path)
+avg_val = val_sum/len(train_fold)
+avg_pruned_val = sum_val_pruned/len(train_fold)
+diffs_val = avg_pruned_val - avg_val
+print("Average(test): ", avg_val)
+print("Average Pruned(test): ", avg_pruned_val)
+print("Difference betweeen pruned and normal: ", diffs_val)
+
+# AVERAGES FOR TEST DATA
+print('dataset used: ',file_path)
+avg_test = test_sum/len(train_fold)
+avg_pruned_test = sum_test_pruned/len(train_fold)
+diffs_test = avg_pruned_test - avg_test
+print("Average(test): ", avg_test)
+print("Average Pruned(test): ", avg_pruned_test)
+print("Difference betweeen pruned and normal: ", diffs_test)
 

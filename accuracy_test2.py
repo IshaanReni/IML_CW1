@@ -23,14 +23,14 @@ random_gen = np.random.default_rng(seed)
 training_data, validation_data, test_data = prepare_data(full_dataset, test_prop=0.1, val_prop=0.1, random_gen=random_gen, save_name='attempt1')
 
 tree = Classifier.fit(training_data)
-predictions = Classifier.predict(tree, test_data[:,:-1])
+predictions = Classifier.predict(tree, validation_data[:,:-1])
 
 # print("first 30 predictions: \n", predictions[:30])
 # print("first 30 ground truth: \n", test_data[:30,-1])
 
-confusion_matrix = evaluation.calc_confusion_matrix(test_data, predictions)
+confusion_matrix = evaluation.calc_confusion_matrix(validation_data, predictions)
 print(confusion_matrix)
-acc = evaluation.calc_accuracy(test_data, predictions)
+acc = evaluation.calc_accuracy(validation_data, predictions)
 
 print("Accuracy:", acc)
 print('confusion matrix:')
@@ -53,14 +53,15 @@ tree.print_tree()
 
 Classifier.decision_tree_pruning(tree, tree.root, validation_data)
 
-predictions_pruned = Classifier.predict(tree, test_data[:,:-1])
+predictions_pruned = Classifier.predict(tree, validation_data[:,:-1]) #test_data
 
 # print("first 30 predictions: \n", predictions[:30])
 # print("first 30 ground truth: \n", test_data[:30,-1])
 
-confusion_matrix_pruned = evaluation.calc_confusion_matrix(test_data, predictions_pruned)
+confusion_matrix_pruned = evaluation.calc_confusion_matrix(validation_data, predictions_pruned)
 print(confusion_matrix_pruned)
-acc_pruned = evaluation.calc_accuracy(test_data, predictions_pruned)
+# acc_pruned = evaluation.calc_accuracy(test_data, predictions_pruned)
+acc_pruned = evaluation.calc_accuracy(validation_data, predictions_pruned)
 
 print("Accuracy:", acc_pruned)
 print('confusion matrix:')

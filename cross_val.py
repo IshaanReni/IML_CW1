@@ -6,30 +6,38 @@ def cross_val(full_dataset, random_gen=np.random.default_rng(8), outer_folds=10,
     # val_prop = 1/outer_folds
     # test_amount = int(full_dataset.shape[0]*test_prop)      #count of test data
     # val_amount = int(full_dataset.shape[0]*val_prop)        #count of validation data
-    test_folds = [[2,3],]
+    test_folds = []
     val_folds = []
     train_folds = []
 
     np.random.shuffle(full_dataset)
-    nr_nows_per_group = int(len(full_dataset) / outer_folds)
-    for i in range(0,outer_folds):
-        test_data = full_dataset[i*nr_nows_per_group : (i+1)*nr_nows_per_group]
+    nr_rows_per_group = int(len(full_dataset) / outer_folds)
+    for i in range(outer_folds):
+        test_data = full_dataset[i*nr_rows_per_group : (i+1)*nr_rows_per_group]
         test_folds.append(test_data.tolist())
-        leftover_data = np.delete(full_dataset, np.s_[i*nr_nows_per_group : (i+1)*nr_nows_per_group], axis=0)
+        leftover_data = np.delete(full_dataset, np.s_[i*nr_rows_per_group : (i+1)*nr_rows_per_group], axis=0)
         # print('test: ',len(test_data),' with data: ', test_data[0:2])
+        # print('fold: ',len(test_folds),' with data: ', test_folds[len(test_folds)-1][0:2])
         # print('leftover: ',len(leftover_data),' with data: ', leftover_data[0:2])
         # print('//')
-        for j in range(0,inner_folds):
-            validation_data = leftover_data[j*nr_nows_per_group : (j+1)*nr_nows_per_group]
-            train_data = np.delete(leftover_data,np.s_[j*nr_nows_per_group : (j+1)*nr_nows_per_group], axis=0)
+        for j in range(inner_folds):
+            validation_data = leftover_data[j*nr_rows_per_group : (j+1)*nr_rows_per_group]
+            train_data = np.delete(leftover_data,np.s_[j*nr_rows_per_group : (j+1)*nr_rows_per_group], axis=0)
             val_folds.append(validation_data.tolist())
             train_folds.append(train_data.tolist())
             # print('validation: ',len(validation_data),' with data: ',validation_data[0:2])
             # print('train: ',len(train_data),' with data: ', train_data[0:2])
             # print('//')
         # print('------------------------')
-    # test_folds.reshape(outer_folds,nr_nows_per_group)
-    return test_folds, val_folds, train_data
+    # test_folds.reshape(outer_folds,nr_rows_per_group)
+    print('//val_fold:   ',len(val_folds),' with data: '  , val_folds[len(val_folds)-1][0:2])
+    print('//test_fold:  ',len(test_folds),' with data: ' , test_folds[len(test_folds)-1][0:2])
+    print('//train_fold: ',len(train_folds),' with data: ', train_folds[len(train_folds)-1][0:2])
+    # print('//val_fold:   ',len(val_folds),' with data: '  , val_folds)
+    # print('//test_fold:  ',len(test_folds),' with data: ' , test_folds)
+    # print('//train_fold: ',len(train_folds),' with data: ', train_folds)
+
+    return test_folds, val_folds, train_folds
 
 
     
