@@ -139,8 +139,8 @@ print('dataset used: ',file_path)
 avg_val = val_sum/len(train_fold)
 avg_pruned_val = sum_val_pruned/len(train_fold)
 diffs_val = avg_pruned_val - avg_val
-print("Average(test): ", avg_val)
-print("Average Pruned(test): ", avg_pruned_val)
+print("Average(val): ", avg_val)
+print("Average Pruned(val): ", avg_pruned_val)
 print("Difference betweeen pruned and normal: ", diffs_val)
 
 # AVERAGES FOR TEST DATA

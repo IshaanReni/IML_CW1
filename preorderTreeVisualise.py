@@ -112,7 +112,7 @@ def plot_preorder_tree(order_list, t_levels):
     line_segments = LineCollection(
         segs, linewidths=1, colors='blue', linestyle='solid')
     tree_nodes = PatchCollection(
-        not_none_nodes, linewidth=1, edgecolor='red', facecolor='green') # ERROR if the tree containing unreachable branches due to None
+        not_none_nodes, linewidth=1, edgecolor='none', facecolor='green') # ERROR if the tree containing unreachable branches due to None
 
     # adding collection elements for edges
     ax.add_collection(line_segments)

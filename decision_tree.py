@@ -155,10 +155,15 @@ class Classifier:
             data = dataset[:,[emitter,-1]]              # extract the router column and label
             sorted_data = data[data[:, 0].argsort()[::-1]]   # sort according to the router column values in descending order(makes splits more efficient)         
             # #print("Emitter:: ", emitter)
-            for split_point_index in range(1,len(sorted_data)):         #for each emitter value
-                greater_split_array = sorted_data[:split_point_index]      # top half of the split column in array form
-                less_split_array = sorted_data[split_point_index:]      # bottom half of the split column in array form
-                # #print("l_split_arr:", less_split_array)
+            # print("sorted_data: ", sorted_data)
+            split_points = np.unique(sorted_data[:,0])[::-1][1:]
+            # print("split unique", split_points)
+            for split_point in split_points:         #for each emitter value
+                greater_split_array = sorted_data[sorted_data[:, 0]>split_point]      # top half of the split column in array form
+                less_split_array = sorted_data[sorted_data[:, 0]<=split_point]      # bottom half of the split column in array formm
+                # greater_split_array = sorted_data>split_point     # bottom half of the split column in array formm
+                # less_split_array = sorted_data<=split_point      # bottom half of the split column in array form
+                # print("l_split_arr:", less_split_array)
                 # #print("g_split_arr:", greater_split_array)
                 sum_entropy = (len(greater_split_array)/(len(sorted_data)))*Classifier.entropy_calc(greater_split_array) + (len(less_split_array)/(len(sorted_data)))*Classifier.entropy_calc(less_split_array) # weighted sum entropies which is used in information gain
                 
@@ -173,6 +178,7 @@ class Classifier:
                 # #print(history, [min_router, min_split])
                 # #print([min_router, min_split] in history)
             if min_col_entropy < min_entropy:   # Checks if the entropy that was just calculated is lower than the lowest so far
+                # print("hAARIS ASKED FOR THIS: ", min_col_split, min_col_entropy)
                 min_entropy = min_col_entropy   # Replaces the value of the return variable with the entropy that was just calculated
                 min_split = min_col_split       # Which split value gave the lowest entropy sum overall
                 min_router = emitter            # Stores the index of the router with the best split so far
@@ -182,6 +188,7 @@ class Classifier:
         # #print("outside sorted data:", str(sorted_data))
         # #print("outside dataset:", str(dataset[:,-1]))
         tree.prev_column = min_router #set previous column to the emitter we are splitting by in this iteration
+        # print("Column deemed optimal: ", min_router, "Optimal Split: ", min_split)
         assert(min_router!=-1 and min_split!=-1), f"Decision tree training error: decision={min_router, min_split}"#+ ("l_split_arr:", str(less_split_array))+ ("g_split_arr:", str(greater_split_array)) #error handling
         ##print("g_split_arr:", greater_split_array)
         return min_router, min_split   # Returns the min router(column index) and the split(row index) for this.
@@ -199,23 +206,31 @@ class Classifier:
             decision_node = Decision(data, attribute, value)        #create new node based on split choices
             #print("Attribute:", attribute)
             #print("Value:", value)
+            # true_subset = data[np.where(data[:, attribute]>value)[0]]
+            # false_subset = data[np.where(data[:, attribute]<=value)[0]]
             true_subset = data[data[:, attribute]>value]      #subset which follows the condition "attribute > value"
             #print("true_subset:", true_subset)
             false_subset = data[data[:, attribute]<=value]    #complement set (doesn't follow condition)
             #print("false_subset:", false_subset)
             #print("-------------------")
-            # print("t:", true_subset[:,-1])###
-            # print("f:", false_subset[:,-1])###
-            if (not true_subset.tolist()) or (not false_subset.tolist()):     #entropy is so similar that one partition is empty ####we should never enter this domain.
-                room_plurality = room_labels[label_counts==max(label_counts)][0]   #predicted room is mode of room labels
-                leaf_node = Leaf(data, room_plurality)    #create leaf node with this room prediction
-                print("t:", true_subset[:,-1])###
-                print("f:", false_subset[:,-1])###
-                return leaf_node, depth     #return leaf node and current depth to parent node
-            else:   #recurse otherwise
-                decision_node.true_child, true_subtree_depth = Classifier.decision_tree_learning(true_subset, tree, depth+1) #recursive call on true side of dataset
-                decision_node.false_child, false_subtree_depth = Classifier.decision_tree_learning(false_subset, tree, depth+1) #recursive call on false side of dataset
-                return decision_node, max(true_subtree_depth, false_subtree_depth) #returns node and current max depth to parent node
+            # print("data:", data)
+            # print("t:", true_subset)###
+            # print("f:", false_subset)###
+    
+            # if (not true_subset.tolist()) or (not false_subset.tolist()):     #entropy is so similar that one partition is empty ####we should never enter this domain.
+            #     room_plurality = room_labels[label_counts==max(label_counts)][0]   #predicted room is mode of room labels
+            #     leaf_node = Leaf(data, room_plurality)    #create leaf node with this room prediction
+            #     print("bruhhhhh")
+            #     # print("data:", data)
+            #     print("bruh t:", true_subset)###
+            #     print("bruh f:", false_subset)###
+            #     return leaf_node, depth     #return leaf node and current depth to parent node
+            # else:   #recurse otherwise
+            decision_node.true_child, true_subtree_depth = Classifier.decision_tree_learning(true_subset, tree, depth+1) #recursive call on true side of dataset
+            # print("after true t:", true_subset)###
+            # print("adter true f:", false_subset)###
+            decision_node.false_child, false_subtree_depth = Classifier.decision_tree_learning(false_subset, tree, depth+1) #recursive call on false side of dataset
+            return decision_node, max(true_subtree_depth, false_subtree_depth) #returns node and current max depth to parent node
 
     #recursive function which prunes a decision tree while calculating accuracy at each step
     @classmethod

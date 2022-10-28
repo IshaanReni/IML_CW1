@@ -12,22 +12,25 @@ def calc_accuracy(test_data, predictions):
     return (np.sum(predictions==test_data[:,-1])/len(predictions))
 
 def calc_precision(matrix):
-    precisions = []
-    for i in range(len(matrix[0,:])):
-        tp = matrix[i,i]
-        fp = np.sum(matrix[:, i]) - tp
-        pre = tp / (tp+fp)
-        precisions.append(pre)
+    # precisions = []
+    # for i in range(len(matrix[0,:])):
+    #     tp = matrix[i,i]
+    #     fp = np.sum(matrix[:, i]) - tp
+    #     pre = tp / (tp+fp)
+    #     precisions.append(pre)
+    
+    precisions = np.diag(matrix)/np.sum(matrix,axis=0)
 
     return precisions
 
 def calc_recall(matrix):
-    recalls = []
-    for i in range(len(matrix[0,:])):
-        tp = matrix[i, i]
-        fn = np.sum(matrix[i, :]) - tp
-        re = tp / (tp+fn)
-        recalls.append(re)
+    # recalls = []
+    # for i in range(len(matrix[0,:])):
+    #     tp = matrix[i, i]
+    #     fn = np.sum(matrix[i, :]) - tp
+    #     re = tp / (tp+fn)
+    #     recalls.append(re)
+    recalls = np.diag(matrix)/np.sum(matrix,axis=1)
 
     return recalls
 

@@ -10,11 +10,14 @@ if len(sys.argv) > 1:
     file_name = sys.argv[1]
 else:
     file_name = 'noisy_dataset.txt'
+    # file_name = 'testDumb.txt'
 file_path = r'intro2ML-coursework1/wifi_db/' + str(file_name)
 # file_path = r'intro2ML-coursework1/wifi_db/clean_dataset.txt'
 # file_path = r'/IML_CW1/intro2ML-coursework1/wifi_db/noisy_dataset.txt'
 full_dataset = np.loadtxt(file_path).astype(np.int64)    #load data from text file into integer numpy array
 
+# full_dataset = np.array([[1,1,1,1,1,1,1,1, 1],[2,2,2,2,2,2,2, 1],[3,3,3,3,3,3,3, 1],[4,4,4,4,4,4,4, 4]])
+# print(np.shape(full_dataset))
 seed = 4
 random_gen = np.random.default_rng(seed)
 
@@ -22,7 +25,7 @@ random_gen = np.random.default_rng(seed)
 
 training_data, validation_data, test_data = prepare_data(full_dataset, test_prop=0.1, val_prop=0.1, random_gen=random_gen, save_name='attempt1')
 
-tree = Classifier.fit(training_data)
+tree = Classifier.fit(training_data, 10)
 predictions = Classifier.predict(tree, validation_data[:,:-1])
 
 # print("first 30 predictions: \n", predictions[:30])
