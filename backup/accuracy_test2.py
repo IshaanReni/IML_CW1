@@ -1,7 +1,7 @@
 import numpy as np
 from decision_tree import Classifier #own script
 from prepare_data import prepare_data
-from cross_val import cross_val
+from prepare_data_cross_val import prepare_data_cross_val
 import evaluation
 import sys
 

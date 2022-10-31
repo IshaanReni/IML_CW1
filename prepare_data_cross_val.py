@@ -1,6 +1,6 @@
 import numpy as np
 
-def cross_val(full_dataset, random_gen=np.random.default_rng(8), outer_folds=10, inner_folds=9):
+def prepare_data_cross_val(full_dataset, random_gen=np.random.default_rng(8), outer_folds=10, inner_folds=9):
     # shuffled_ind = random_gen.permutation(len(full_dataset))    #permute numbers between 0 and length of dataset
     # test_prop = 1/outer_folds
     # val_prop = 1/outer_folds
@@ -10,12 +10,13 @@ def cross_val(full_dataset, random_gen=np.random.default_rng(8), outer_folds=10,
     val_folds = []
     train_folds = []
 
-    np.random.shuffle(full_dataset)
-    nr_rows_per_group = int(len(full_dataset) / outer_folds)
+    random_gen.shuffle(full_dataset)
+    nr_rows_per_fold = int(len(full_dataset) / outer_folds)
     for i in range(outer_folds):
-        test_data = full_dataset[i*nr_rows_per_group : (i+1)*nr_rows_per_group]
+        test_data = full_dataset[i*nr_rows_per_fold : (i+1)*nr_rows_per_fold]
         test_folds.append(test_data.tolist())
-        leftover_data = np.delete(full_dataset, np.s_[i*nr_rows_per_group : (i+1)*nr_rows_per_group], axis=0)
+        leftover_data = np.delete(full_dataset, np.s_[i*nr_rows_per_fold : (i+1)*nr_rows_per_fold], axis=0)
+        nr_rows_per_group = int(len(leftover_data) / 9)
         # print('test: ',len(test_data),' with data: ', test_data[0:2])
         # print('fold: ',len(test_folds),' with data: ', test_folds[len(test_folds)-1][0:2])
         # print('leftover: ',len(leftover_data),' with data: ', leftover_data[0:2])
@@ -30,9 +31,9 @@ def cross_val(full_dataset, random_gen=np.random.default_rng(8), outer_folds=10,
             # print('//')
         # print('------------------------')
     # test_folds.reshape(outer_folds,nr_rows_per_group)
-    print('//val_fold:   ',len(val_folds),' with data: '  , val_folds[len(val_folds)-1][0:2])
-    print('//test_fold:  ',len(test_folds),' with data: ' , test_folds[len(test_folds)-1][0:2])
-    print('//train_fold: ',len(train_folds),' with data: ', train_folds[len(train_folds)-1][0:2])
+    # print('//val_fold:   ',len(val_folds),' with data: '  , val_folds[len(val_folds)-1][0:2])
+    # print('//test_fold:  ',len(test_folds),' with data: ' , test_folds[len(test_folds)-1][0:2])
+    # print('//train_fold: ',len(train_folds),' with data: ', train_folds[len(train_folds)-1][0:2])
     # print('//val_fold:   ',len(val_folds),' with data: '  , val_folds)
     # print('//test_fold:  ',len(test_folds),' with data: ' , test_folds)
     # print('//train_fold: ',len(train_folds),' with data: ', train_folds)
