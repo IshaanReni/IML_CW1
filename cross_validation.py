@@ -29,7 +29,7 @@ sum_nodes = 0
 for index in range(len(train_folds)): 
     training_data = np.array(train_folds[index])
     validation_data = np.array(val_folds[index])
-    test_data = np.array(test_folds[index%inner_folds])
+    test_data = np.array(test_folds[int(index/inner_folds)])
     # print('some test data: ', test_data[:])
     # print('some test data[:,:-1]: ', test_data[:,:-1])
     tree = Classifier.fit(training_data)

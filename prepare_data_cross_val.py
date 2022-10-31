@@ -30,6 +30,10 @@ def prepare_data_cross_val(full_dataset, random_gen=np.random.default_rng(8), ou
             # print('train: ',len(train_data),' with data: ', train_data[0:2])
             # print('//')
         # print('------------------------')
+            # for val in validation_data:###############
+            #     for test in test_data:
+            #         if (val == test).all():
+            #             print('------------------------------------', test, val, val==test)##############
     # test_folds.reshape(outer_folds,nr_rows_per_group)
     # print('//val_fold:   ',len(val_folds),' with data: '  , val_folds[len(val_folds)-1][0:2])
     # print('//test_fold:  ',len(test_folds),' with data: ' , test_folds[len(test_folds)-1][0:2])
