@@ -24,7 +24,7 @@ training_data, validation_data, test_data = prepare_data(full_dataset, test_prop
 
 ################# TRAINING ##################
 
-tree = Classifier.fit(training_data, max_depth=10)  #create tree trained on training data
+tree = Classifier.fit(training_data, max_depth=999)  #create tree trained on training data
 predictions = Classifier.predict(tree, test_data[:,:-1])    #query tree on test data
 
 ################# STATISTICS ##################
