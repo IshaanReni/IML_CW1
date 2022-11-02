@@ -19,6 +19,9 @@ def cross_validation (test_folds, val_folds, train_folds, outer_folds=10, inner_
     sumRecP = [0,0,0,0]
     sumF1P = [0,0,0,0]
 
+    con_matrix = np.zeros(4)
+    con_matrixP = np.zeros(4)
+
     for index in range(len(train_folds)):                           #completing cross validation, train folds and val_folds are the same size of outer_folds x inner_folds = 90
         training_data = np.array(train_folds[index])                #get the training dataset
         validation_data = np.array(val_folds[index])                #get the validation dataset
@@ -57,6 +60,7 @@ def cross_validation (test_folds, val_folds, train_folds, outer_folds=10, inner_
         print("Accuracy(original, test):", test_acc)
         test_sum += test_acc
 
+        con_matrix = np.add(con_matrix, confusion_matrix)
 
         precisions = evaluation.calc_precision(confusion_matrix)                        # calculating precision for specific fold
         recalls = evaluation.calc_recall(confusion_matrix)                              # calculating recall for specific fold
@@ -87,6 +91,8 @@ def cross_validation (test_folds, val_folds, train_folds, outer_folds=10, inner_
         test_acc_pruned = evaluation.calc_accuracy(test_data, test_predictions_pruned)                          # calculating accuracy based on real labels and prdictions
         print("Accuracy Pruned(test):", test_acc_pruned)
         sum_test_pruned += test_acc_pruned 
+
+        con_matrixP = np.add(con_matrixP, test_confusion_matrix_pruned)
 
         precisionsP = evaluation.calc_precision(test_confusion_matrix_pruned)
         recallsP = evaluation.calc_recall(test_confusion_matrix_pruned)
@@ -137,6 +143,17 @@ def cross_validation (test_folds, val_folds, train_folds, outer_folds=10, inner_
     avg_nodes_pruned = sum_nodes_pruned/len(train_folds)    #calculating average of number of nodes for pruned tree
     print("Average nodes (normal tree):", avg_nodes)    
     print("Average nodes (pruned tree):", avg_nodes_pruned)
+
+    div = np.full(16,len(train_folds))
+    div = div.reshape(4,4)
+
+    avgcon = np.divide(con_matrix, div)
+    print ("Average Confusion Matrix: ")
+    print (avgcon)
+
+    avgconP = np.divide(con_matrixP, div)
+    print ("Average Confusion Matrix (After pruning): ")
+    print (avgconP)
 
     tree.print_tree()               #   visualising normal tree
     pruned_tree.print_tree()        #   visualising pruned tree

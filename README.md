@@ -2,6 +2,10 @@
 DoC: Introduction to Machine Learning  
 Decision Tree Coursework
 
+## Deliverables
+Instructions for setting up the repo are outlined below.
+The report named `Intro_to_ML_Report.pdf` can also be found in the repo.
+
 ## Background
 This library supports the training, pruning, and evaluation of decision trees, as well as cross-validation.
 The data is assumed to be in numpy integer format, with the last column representing class labels.
